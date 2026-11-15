@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { z } from 'zod';
 import { CurrentUser, SuperAdminOnly } from '../auth/decorators';
 import { Meta, type RequestMeta } from '../common/request-meta';
@@ -7,6 +8,7 @@ import { zbody, ZodPipe } from '../common/validation';
 import type { User } from '../db/types';
 import { AdminService } from './admin.service';
 import { CertificatesService } from './certificates.service';
+import { lookupTaxId } from './tax-lookup';
 
 const companySchema = z.object({
   name: z.string().trim().min(1, 'กรุณากรอกชื่อบริษัท').max(200),
@@ -62,6 +64,13 @@ export class AdminController {
   @Get('overview')
   overview() {
     return this.admin.overview();
+  }
+
+  /** Fill the company form from the Revenue Department's VAT registry */
+  @Get('tax-lookup/:taxId')
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  taxLookup(@Param('taxId') taxId: string) {
+    return lookupTaxId(taxId.replace(/\D/g, ''));
   }
 
   @Get('companies')

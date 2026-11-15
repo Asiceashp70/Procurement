@@ -63,6 +63,31 @@ function Companies() {
   const [form, setForm] = useState<{ id?: string; name: string; taxId: string; address: string } | null>(null);
   const [appointFor, setAppointFor] = useState<CompanyRow | null>(null);
   const [certFor, setCertFor] = useState<string | null>(null);
+  const [lookup, setLookup] = useState<{ busy?: boolean; note?: string; error?: string }>({});
+
+  /** Fill name and address from the Revenue Department's VAT registry */
+  const lookupTax = async (taxId: string, onlyEmpty: boolean) => {
+    setLookup({ busy: true });
+    try {
+      const r = await api.get<{ name: string; address: string; branch: string }>(`/admin/tax-lookup/${taxId}`);
+      setForm((f) =>
+        f && f.taxId.replace(/\D/g, '') === taxId
+          ? { ...f, name: onlyEmpty && f.name ? f.name : r.name, address: onlyEmpty && f.address ? f.address : r.address }
+          : f,
+      );
+      setLookup({ note: `ข้อมูลจากกรมสรรพากร (${r.branch}) ตรวจทานก่อนบันทึก` });
+    } catch (err) {
+      setLookup({ error: errorText(err) });
+    }
+  };
+  const changeTaxId = (taxId: string) => {
+    if (!form) return;
+    setForm({ ...form, taxId });
+    setLookup({});
+    const digits = taxId.replace(/\D/g, '');
+    // new company, 13 digits typed or pasted, nothing filled in yet: look it up right away
+    if (!form.id && digits.length === 13 && !form.name && !form.address) void lookupTax(digits, true);
+  };
 
   const load = useCallback(() => {
     api.get<Overview>('/admin/overview').then(setOverview);
@@ -130,7 +155,7 @@ function Companies() {
       {error && <div className="alert alert-error">{error}</div>}
       <div className="row" style={{ marginBottom: 12, flexWrap: 'nowrap' }}>
         <input type="search" placeholder="ค้นหาชื่อบริษัทหรือเลขผู้เสียภาษี" value={q} onChange={(e) => setQ(e.target.value)} />
-        <button className="btn-primary" onClick={() => setForm({ name: '', taxId: '', address: '' })}>
+        <button className="btn-primary" onClick={() => (setForm({ name: '', taxId: '', address: '' }), setLookup({}))}>
           + สร้างบริษัท
         </button>
       </div>
@@ -146,7 +171,19 @@ function Companies() {
           </label>
           <label className="field">
             <span>เลขประจำตัวผู้เสียภาษี (13 หลัก)</span>
-            <input type="text" inputMode="numeric" value={form.taxId} onChange={(e) => setForm({ ...form, taxId: e.target.value })} />
+            <div className="row">
+              <input type="text" inputMode="numeric" value={form.taxId} onChange={(e) => changeTaxId(e.target.value)} style={{ flex: 1 }} />
+              <button
+                type="button"
+                className="btn-sm"
+                disabled={lookup.busy || form.taxId.replace(/\D/g, '').length !== 13}
+                onClick={() => lookupTax(form.taxId.replace(/\D/g, ''), false)}
+              >
+                {lookup.busy ? 'กำลังค้นหา...' : '🔎 ดึงข้อมูลจากกรมสรรพากร'}
+              </button>
+            </div>
+            {lookup.note && <span className="muted small">✓ {lookup.note}</span>}
+            {lookup.error && <span className="field-error">{lookup.error}</span>}
           </label>
           <label className="field">
             <span>ที่อยู่</span>
@@ -176,7 +213,7 @@ function Companies() {
               <Link className="btn btn-sm" to={`/c/${c.id}/admin`}>
                 เปิดหลังบ้าน
               </Link>
-              <button className="btn-sm" onClick={() => setForm({ id: c.id, name: c.name, taxId: c.taxId ?? '', address: c.address ?? '' })}>
+              <button className="btn-sm" onClick={() => (setForm({ id: c.id, name: c.name, taxId: c.taxId ?? '', address: c.address ?? '' }), setLookup({}))}>
                 แก้ไข
               </button>
               <button className={`btn-sm ${c.status === 'active' ? 'btn-danger' : ''}`} onClick={() => toggle(c)}>
