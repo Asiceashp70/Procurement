@@ -165,7 +165,11 @@ if ($Domain) {
   $Origin = "https://$Domain"
 } else {
   if (-not $Address) {
-    $Address = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -in @('Dhcp', 'Manual') -and $_.IPAddress -notlike '169.254.*' } | Select-Object -First 1).IPAddress
+    # the adapter with a default gateway is the one on the office network (not a Hyper-V/WSL virtual switch)
+    $Address = (Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -and $_.NetAdapter.Status -eq 'Up' } | Select-Object -First 1).IPv4Address.IPAddress | Select-Object -First 1
+    if (-not $Address) {
+      $Address = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -in @('Dhcp', 'Manual') -and $_.IPAddress -notlike '169.254.*' } | Select-Object -First 1).IPAddress
+    }
   }
   if (-not $Address) { Fail 'Could not find this server''s IP address; pass it with -Address' }
   $Origin = "http://$Address"
