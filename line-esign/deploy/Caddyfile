@@ -1,0 +1,26 @@
+# Caddy reverse proxy on the Windows Server. Gets and renews the HTTPS certificate
+# automatically (LINE Login needs an HTTPS callback). Replace the domain.
+esign.example.co.th {
+	encode gzip
+
+	# API (NestJS listens on 127.0.0.1 only)
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3100
+	}
+
+	# Web app (built by `npm run build` in frontend/)
+	handle {
+		root * C:\esign\frontend\dist
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+	}
+	request_body {
+		max_size 60MB
+	}
+}
