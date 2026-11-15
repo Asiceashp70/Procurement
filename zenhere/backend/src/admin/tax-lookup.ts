@@ -62,7 +62,8 @@ function field(xml: string, name: string): string[] {
   return [...m[1].matchAll(/<(?:\w+:)?anyType\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:\w+:)?anyType>)/gi)].map((a) => decode(a[1] ?? ''));
 }
 
-const blank = (v: string | undefined) => !v || v === '-';
+/** the registry uses '-', '-.', '.' and the like for "no value" */
+const blank = (v: string | undefined) => !v || !/[0-9A-Za-z\u0E00-\u0E7F]/.test(v);
 
 export function parseVatResponse(xml: string): Omit<TaxLookupResult, 'taxId'> | null {
   if (field(xml, 'vmsgerr').some((e) => e && e !== '-')) return null;

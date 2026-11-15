@@ -164,15 +164,9 @@ function Companies() {
         <form className="card" onSubmit={save}>
           <h2>{form.id ? 'แก้ไขบริษัท' : 'สร้างบริษัท'}</h2>
           <label className="field">
-            <span>
-              ชื่อบริษัท <span className="req">*</span>
-            </span>
-            <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-          </label>
-          <label className="field">
             <span>เลขประจำตัวผู้เสียภาษี (13 หลัก)</span>
             <div className="row">
-              <input type="text" inputMode="numeric" value={form.taxId} onChange={(e) => changeTaxId(e.target.value)} style={{ flex: 1 }} />
+              <input type="text" inputMode="numeric" value={form.taxId} onChange={(e) => changeTaxId(e.target.value)} style={{ flex: 1 }} autoFocus={!form.id} placeholder="วางเลข 13 หลัก ระบบกรอกชื่อและที่อยู่ให้" />
               <button
                 type="button"
                 className="btn-sm"
@@ -184,6 +178,12 @@ function Companies() {
             </div>
             {lookup.note && <span className="muted small">✓ {lookup.note}</span>}
             {lookup.error && <span className="field-error">{lookup.error}</span>}
+          </label>
+          <label className="field">
+            <span>
+              ชื่อบริษัท <span className="req">*</span>
+            </span>
+            <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           </label>
           <label className="field">
             <span>ที่อยู่</span>
