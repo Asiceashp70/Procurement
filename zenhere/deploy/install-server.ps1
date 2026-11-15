@@ -275,24 +275,38 @@ $caddyPath = Join-Path $InstallDir 'Caddyfile'
 [IO.File]::WriteAllText($caddyPath, $caddyfile)
 
 
+# Windows PowerShell 5.1 turns a native program's stderr into a terminating error when
+# ErrorActionPreference is Stop and the output is redirected; nssm writes notices there.
+function Invoke-Native([string]$exe, [string[]]$arguments) {
+  $old = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try { & $exe @arguments 2>&1 | Out-Null } finally { $ErrorActionPreference = $old }
+  return $LASTEXITCODE
+}
+
 function Install-ZenService([string]$name, [string]$exe, [string]$arguments, [string]$dir, [string]$log) {
-  if (Get-Service -Name $name -ErrorAction SilentlyContinue) {
-    & $nssm stop $name 2>&1 | Out-Null
+  $svc = Get-Service -Name $name -ErrorAction SilentlyContinue
+  if ($svc) {
+    if ($svc.Status -ne 'Stopped') { Invoke-Native $nssm @('stop', $name) | Out-Null }
   } else {
-    & $nssm install $name $exe 2>&1 | Out-Null
+    if ((Invoke-Native $nssm @('install', $name, $exe)) -ne 0) { Fail "Could not create the Windows service $name" }
   }
-  & $nssm set $name Application $exe | Out-Null
-  & $nssm set $name AppParameters $arguments | Out-Null
-  & $nssm set $name AppDirectory $dir | Out-Null
-  & $nssm set $name Start SERVICE_AUTO_START | Out-Null
-  & $nssm set $name AppExit Default Restart | Out-Null
-  & $nssm set $name AppRestartDelay 5000 | Out-Null
-  & $nssm set $name AppStdout (Join-Path $Logs "$log.out.log") | Out-Null
-  & $nssm set $name AppStderr (Join-Path $Logs "$log.err.log") | Out-Null
-  & $nssm set $name AppRotateFiles 1 | Out-Null
-  & $nssm set $name AppRotateBytes 10485760 | Out-Null
-  & $nssm start $name 2>&1 | Out-Null
-  Note "service $name started"
+  Invoke-Native $nssm @('set', $name, 'Application', $exe) | Out-Null
+  Invoke-Native $nssm @('set', $name, 'AppParameters', $arguments) | Out-Null
+  Invoke-Native $nssm @('set', $name, 'AppDirectory', $dir) | Out-Null
+  Invoke-Native $nssm @('set', $name, 'Start', 'SERVICE_AUTO_START') | Out-Null
+  Invoke-Native $nssm @('set', $name, 'AppExit', 'Default', 'Restart') | Out-Null
+  Invoke-Native $nssm @('set', $name, 'AppRestartDelay', '5000') | Out-Null
+  Invoke-Native $nssm @('set', $name, 'AppStdout', (Join-Path $Logs "$log.out.log")) | Out-Null
+  Invoke-Native $nssm @('set', $name, 'AppStderr', (Join-Path $Logs "$log.err.log")) | Out-Null
+  Invoke-Native $nssm @('set', $name, 'AppRotateFiles', '1') | Out-Null
+  Invoke-Native $nssm @('set', $name, 'AppRotateBytes', '10485760') | Out-Null
+  Invoke-Native $nssm @('start', $name) | Out-Null
+  for ($i = 0; $i -lt 15; $i++) {
+    if ((Get-Service -Name $name).Status -eq 'Running') { Note "service $name running"; return }
+    Start-Sleep -Seconds 1
+  }
+  Fail "Service $name did not start. See $Logs\$log.err.log"
 }
 Install-ZenService 'zenhere-api' (Get-Command node).Source 'dist\main.js' $backend 'api'
 Install-ZenService 'zenhere-web' $caddy "run --config `"$caddyPath`" --adapter caddyfile" $InstallDir 'web'

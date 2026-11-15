@@ -9,7 +9,9 @@ try {
   if ($pick) {
     & node scripts\super-admin.cjs --add $pick
     if ($LASTEXITCODE -eq 0) {
-      & (Join-Path $InstallDir 'tools\nssm.exe') restart zenhere-api | Out-Null
+      $ErrorActionPreference = 'Continue'   # nssm writes notices to stderr
+      & (Join-Path $InstallDir 'tools\nssm.exe') restart zenhere-api 2>&1 | Out-Null
+      $ErrorActionPreference = 'Stop'
       Write-Host 'Done. The API was restarted; log out and in again.'
     }
   }
