@@ -40,6 +40,8 @@ const schema = z.object({
     .optional()
     .transform((v) => v !== 'false'),
   PDPA_CONSENT_VERSION: z.string().default('2026-11-v1'),
+  /** RFC 3161 Time Stamping Authority used when sealing (optional). */
+  TSA_URL: z.string().url().optional().or(z.literal('').transform(() => undefined)),
 });
 
 export type AppConfig = z.infer<typeof schema> & { superAdminLineUserIds: Set<string> };

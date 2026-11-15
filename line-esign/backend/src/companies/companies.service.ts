@@ -299,6 +299,26 @@ export class CompaniesService {
           trx,
         );
       }
+      // ADM-04: documents waiting on a suspended person go back to their creators and the admins
+      if (row.status === 'suspended' && m.status !== 'suspended') {
+        const stuck = await trx
+          .selectFrom('document_signers as s')
+          .innerJoin('documents as d', 'd.id', 's.document_id')
+          .select(['d.id', 'd.title', 'd.created_by', 's.display_name'])
+          .where('s.user_id', '=', m.user_id)
+          .where('d.company_id', '=', m.company_id)
+          .where('d.status', '=', 'pending')
+          .where('s.status', 'in', ['pending', 'waiting'])
+          .execute();
+        if (stuck.length) {
+          const admins = await trx.selectFrom('memberships').select('user_id').where('company_id', '=', m.company_id).where('role', '=', 'admin').where('status', '=', 'approved').execute();
+          for (const d of stuck) {
+            for (const to of new Set([d.created_by, ...admins.map((a) => a.user_id)])) {
+              await this.notifications.enqueue({ userId: to, companyId: m.company_id, type: 'signer.suspended', payload: { documentId: d.id, title: d.title, signerName: d.display_name } }, trx);
+            }
+          }
+        }
+      }
       // REG-06: tell the applicant on LINE
       if (m.status === 'pending' && row.status === 'approved') {
         await this.notifications.enqueue({ userId: m.user_id, companyId: m.company_id, type: 'membership.approved', payload: { companyName: company.name } }, trx);
@@ -400,7 +420,39 @@ export class CompaniesService {
       .where('u.is_oa_friend', '=', false)
       .executeTakeFirstOrThrow();
     const counts = Object.fromEntries(byStatus.map((r) => [r.status, r.count]));
+    const docs = await this.db
+      .selectFrom('documents')
+      .select([
+        sql<number>`count(*) FILTER (WHERE status = 'pending')::int`.as('pending'),
+        sql<number>`count(*) FILTER (WHERE status = 'completed')::int`.as('completed'),
+        sql<number>`count(*) FILTER (WHERE status = 'declined')::int`.as('declined'),
+        sql<number>`count(*) FILTER (WHERE status = 'voided' AND sent_at IS NOT NULL)::int`.as('voided'),
+        sql<number>`count(*) FILTER (WHERE status = 'pending' AND due_at < now())::int`.as('overdue'),
+      ])
+      .where('company_id', '=', companyId)
+      .executeTakeFirstOrThrow();
+    const topPending = await this.db
+      .selectFrom('document_signers as s')
+      .innerJoin('documents as d', 'd.id', 's.document_id')
+      .innerJoin('users as u', 'u.id', 's.user_id')
+      .select(['u.id as userId', sql<string>`coalesce(u.first_name || ' ' || u.last_name, u.line_display_name)`.as('name'), 'u.is_oa_friend as isOaFriend', sql<number>`count(*)::int`.as('count')])
+      .where('d.company_id', '=', companyId)
+      .where('d.status', '=', 'pending')
+      .where('s.status', '=', 'pending')
+      .groupBy(['u.id'])
+      .orderBy(sql`count(*)`, 'desc')
+      .limit(5)
+      .execute();
+    const certificate = await this.db
+      .selectFrom('company_certificates')
+      .select(['subject', 'not_after as notAfter'])
+      .where('company_id', '=', companyId)
+      .where('is_active', '=', true)
+      .executeTakeFirst();
     return {
+      documents: docs,
+      topPendingSigners: topPending,
+      certificate: certificate ?? null,
       company: { id: company.id, name: company.name, status: company.status },
       members: {
         pending: counts.pending ?? 0,

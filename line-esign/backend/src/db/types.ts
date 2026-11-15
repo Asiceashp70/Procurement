@@ -176,3 +176,172 @@ export type Company = Selectable<CompaniesTable>;
 export type Membership = Selectable<MembershipsTable>;
 export type NewJob = Insertable<JobsTable>;
 export type MembershipUpdate = Updateable<MembershipsTable>;
+
+// ---------------------------------------------------------------- phase 2
+
+export type DocumentStatus = 'draft' | 'pending' | 'completed' | 'declined' | 'voided';
+export type SignerStatus = 'waiting' | 'pending' | 'signed' | 'declined' | 'replaced';
+export type FieldType = 'signature' | 'date' | 'text' | 'checkbox' | 'stamp' | 'certified_copy';
+
+export interface CompanyStampsTable {
+  id: Generated<string>;
+  company_id: string;
+  name: string;
+  storage_key: string;
+  width: number;
+  height: number;
+  is_active: Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface CompanyStampUsersTable {
+  stamp_id: string;
+  user_id: string;
+}
+
+export interface CompanyCertificatesTable {
+  id: Generated<string>;
+  company_id: string;
+  storage_key: string;
+  password_enc: string;
+  subject: string;
+  issuer: string;
+  serial_number: string;
+  not_before: Timestamp;
+  not_after: Timestamp;
+  is_active: Generated<boolean>;
+  uploaded_by: string | null;
+  created_at: Generated<Date>;
+  notified_30d_at: NullableTimestamp;
+  notified_7d_at: NullableTimestamp;
+}
+
+export interface DocumentsTable {
+  id: Generated<string>;
+  company_id: string;
+  created_by: string;
+  title: string;
+  description: string | null;
+  doc_type: string | null;
+  tags: ColumnType<string[], string[] | undefined, string[]>;
+  status: Generated<DocumentStatus>;
+  signing_mode: Generated<'parallel' | 'sequential'>;
+  due_at: NullableTimestamp;
+  notify_creator_on_sign: Generated<boolean>;
+  original_name: string;
+  original_mime: string;
+  original_key: string;
+  source_key: string;
+  original_sha256: string;
+  source_sha256: string;
+  page_count: number;
+  byte_size: number;
+  final_key: string | null;
+  final_sha256: string | null;
+  seal_status: Generated<'none' | 'sealed' | 'no_certificate' | 'failed'>;
+  sealed_certificate_id: string | null;
+  timestamped: Generated<boolean>;
+  sent_at: NullableTimestamp;
+  completed_at: NullableTimestamp;
+  finalized_at: NullableTimestamp;
+  declined_at: NullableTimestamp;
+  voided_at: NullableTimestamp;
+  void_reason: string | null;
+  due_soon_notified_at: NullableTimestamp;
+  overdue_notices_sent: Generated<number>;
+  last_overdue_notice_at: NullableTimestamp;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DocumentPagesTable {
+  document_id: string;
+  page_no: number;
+  width: number;
+  height: number;
+  rotation: Generated<number>;
+  text: string | null;
+  text_normalized: string | null;
+  text_source: 'pdf' | 'ocr' | null;
+  ocr_confidence: number | null;
+}
+
+export interface DocumentSignersTable {
+  id: Generated<string>;
+  document_id: string;
+  user_id: string;
+  order_index: Generated<number>;
+  status: Generated<SignerStatus>;
+  display_name: string | null;
+  position_name: string | null;
+  department_name: string | null;
+  notified_at: NullableTimestamp;
+  opened_at: NullableTimestamp;
+  signed_at: NullableTimestamp;
+  declined_at: NullableTimestamp;
+  decline_reason: string | null;
+  reminder_count: Generated<number>;
+  last_reminded_at: NullableTimestamp;
+  replaced_by: string | null;
+  replaced_reason: string | null;
+  signature_key: string | null;
+  sign_ip: string | null;
+  sign_user_agent: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface FieldSettings {
+  label?: string;
+  required?: boolean;
+  maxLength?: number;
+  fontSize?: number;
+  dateFormat?: 'short' | 'long' | 'numeric';
+  stampId?: string;
+  text?: string; // certified copy wording
+}
+
+export interface FieldsTable {
+  id: Generated<string>;
+  document_id: string;
+  signer_id: string;
+  page_no: number;
+  type: FieldType;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  settings: Json<FieldSettings>;
+  value: ColumnType<unknown, unknown, unknown>;
+  filled_at: NullableTimestamp;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+}
+
+export interface DocumentEventsTable {
+  id: Generated<string>;
+  document_id: string;
+  type: string;
+  actor_user_id: string | null;
+  actor_line_user_id: string | null;
+  signer_id: string | null;
+  details: Json;
+  ip: string | null;
+  user_agent: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface Database {
+  company_stamps: CompanyStampsTable;
+  company_stamp_users: CompanyStampUsersTable;
+  company_certificates: CompanyCertificatesTable;
+  documents: DocumentsTable;
+  document_pages: DocumentPagesTable;
+  document_signers: DocumentSignersTable;
+  fields: FieldsTable;
+  document_events: DocumentEventsTable;
+}
+
+export type Document = Selectable<DocumentsTable>;
+export type DocumentSigner = Selectable<DocumentSignersTable>;
+export type Field = Selectable<FieldsTable>;

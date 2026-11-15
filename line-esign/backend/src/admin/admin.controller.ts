@@ -1,10 +1,12 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { z } from 'zod';
 import { CurrentUser, SuperAdminOnly } from '../auth/decorators';
 import { Meta, type RequestMeta } from '../common/request-meta';
 import { zbody, ZodPipe } from '../common/validation';
 import type { User } from '../db/types';
 import { AdminService } from './admin.service';
+import { CertificatesService } from './certificates.service';
 
 const companySchema = z.object({
   name: z.string().trim().min(1, 'กรุณากรอกชื่อบริษัท').max(200),
@@ -28,7 +30,34 @@ const auditQuerySchema = z.object({
 @SuperAdminOnly()
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(
+    private readonly admin: AdminService,
+    private readonly certificates: CertificatesService,
+  ) {}
+
+  // ADM-11
+  @Get('companies/:id/certificates')
+  listCertificates(@Param('id', ParseUUIDPipe) id: string) {
+    return this.certificates.list(id);
+  }
+
+  @Post('companies/:id/certificates')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 1024 * 1024, files: 1 } }))
+  uploadCertificate(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Body('password') password: string | undefined,
+    @Meta() meta: RequestMeta,
+  ) {
+    if (!file) throw new BadRequestException('ไม่พบไฟล์ใบรับรอง');
+    return this.certificates.upload(user, id, file.buffer, password ?? '', meta);
+  }
+
+  @Post('certificates/:certId/deactivate')
+  deactivateCertificate(@CurrentUser() user: User, @Param('certId', ParseUUIDPipe) certId: string, @Meta() meta: RequestMeta) {
+    return this.certificates.deactivate(user, certId, meta);
+  }
 
   @Get('overview')
   overview() {

@@ -3,6 +3,16 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AdminController } from './admin/admin.controller';
 import { AdminService } from './admin/admin.service';
+import { CertificatesService } from './admin/certificates.service';
+import { StampsController } from './companies/stamps.controller';
+import { StampsService } from './companies/stamps.service';
+import { DocumentAccessService } from './documents/document-access.service';
+import { DocumentEventsService } from './documents/document-events';
+import { DocumentsController } from './documents/documents.controller';
+import { DocumentsService } from './documents/documents.service';
+import { FinalizeService } from './documents/finalize.service';
+import { SchedulerService } from './documents/scheduler.service';
+import { SigningService } from './documents/signing.service';
 import { AuditService } from './audit/audit.service';
 import { AuthController } from './auth/auth.controller';
 import { AuthGuard } from './auth/auth.guard';
@@ -29,7 +39,7 @@ import { UsersService } from './users/users.service';
       throttlers: [{ name: 'default', ttl: 60_000, limit: 300 }],
       skipIf: () => config().NODE_ENV === 'test',
     })],
-  controllers: [HealthController, AuthController, MeController, CompaniesController, AdminController, LineWebhookController],
+  controllers: [HealthController, AuthController, MeController, CompaniesController, StampsController, AdminController, DocumentsController, LineWebhookController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
@@ -45,6 +55,14 @@ import { UsersService } from './users/users.service';
     JobsService,
     LinePushService,
     NotificationsService,
+    CertificatesService,
+    StampsService,
+    DocumentEventsService,
+    DocumentAccessService,
+    DocumentsService,
+    SigningService,
+    FinalizeService,
+    SchedulerService,
   ],
 })
 export class AppModule implements NestModule {

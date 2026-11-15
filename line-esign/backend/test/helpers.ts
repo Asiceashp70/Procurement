@@ -7,7 +7,8 @@ import { randomBytes } from 'node:crypto';
 import { loadConfig, setConfigForTests } from '../src/config/config';
 
 const ADMIN_URL = process.env.TEST_ADMIN_DATABASE_URL ?? 'postgres://esign:esign_dev@localhost:5432/postgres';
-export const TEST_DB = 'esign_test';
+// one database per Jest worker so suites can run in parallel
+export const TEST_DB = `esign_test_${process.env.JEST_WORKER_ID ?? '1'}`;
 export const TEST_DB_URL = ADMIN_URL.replace(/\/[^/]+$/, `/${TEST_DB}`);
 export const ORIGIN = 'http://localhost:5173';
 export const SUPER_ADMIN_LINE_ID = 'U' + 'a'.repeat(32);
