@@ -1,0 +1,5 @@
+-r requirements.txt
+pytest>=8
+httpx>=0.27
+# only for tests: ships PP-OCRv3 ONNX models (Chinese/English) to exercise the pipeline
+rapidocr_onnxruntime

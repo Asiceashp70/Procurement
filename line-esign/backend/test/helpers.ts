@@ -21,7 +21,7 @@ export async function resetDatabase() {
   await c.end();
 }
 
-export function useTestConfig() {
+export function useTestConfig(overrides: Record<string, string> = {}) {
   setConfigForTests(
     loadConfig({
       NODE_ENV: 'test',
@@ -35,6 +35,7 @@ export function useTestConfig() {
       LINE_PUSH_ENABLED: 'false',
       LINE_MESSAGING_CHANNEL_SECRET: 'test-channel-secret',
       SUPER_ADMIN_LINE_USER_IDS: SUPER_ADMIN_LINE_ID,
+      ...overrides,
     }),
   );
 }

@@ -11,10 +11,12 @@ import { JoinPage } from './pages/JoinPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RegisterPage } from './pages/RegisterPage';
+import { SearchPage } from './pages/SearchPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
 
 // pdf.js is large: load it only on the pages that render PDFs
 const EditorPage = lazy(() => import('./pages/EditorPage').then((m) => ({ default: m.EditorPage })));
+const DocumentViewPage = lazy(() => import('./pages/DocumentViewPage').then((m) => ({ default: m.DocumentViewPage })));
 const SignPage = lazy(() => import('./pages/SignPage').then((m) => ({ default: m.SignPage })));
 import { SessionProvider, useSession } from './session';
 
@@ -33,6 +35,8 @@ export function App() {
           <Route path="/documents/:id" element={<RequireLogin><Shell><DocumentDetailPage /></Shell></RequireLogin>} />
           <Route path="/documents/:id/edit" element={<RequireLogin><Shell wide><EditorPage /></Shell></RequireLogin>} />
           <Route path="/documents/:id/sign" element={<RequireLogin><Shell><SignPage /></Shell></RequireLogin>} />
+          <Route path="/documents/:id/view" element={<RequireLogin><Shell><DocumentViewPage /></Shell></RequireLogin>} />
+          <Route path="/search" element={<RequireLogin><Shell><SearchPage /></Shell></RequireLogin>} />
           <Route path="/verify" element={<RequireLogin><Shell><VerifyPage /></Shell></RequireLogin>} />
           <Route path="/profile" element={<RequireLogin><Shell><ProfilePage /></Shell></RequireLogin>} />
           <Route path="/c/:companyId/admin" element={<RequireLogin><Shell wide><CompanyAdminPage /></Shell></RequireLogin>} />
@@ -86,9 +90,14 @@ function Shell({ children, wide }: { children: ReactNode; wide?: boolean }) {
           LINE e-Sign
         </Link>
         {me?.registered && (
-          <Link to="/documents" className="small" style={{ fontWeight: 600 }}>
-            เอกสาร
-          </Link>
+          <>
+            <Link to="/documents" className="small" style={{ fontWeight: 600 }}>
+              เอกสาร
+            </Link>
+            <Link to="/search" className="small" style={{ fontWeight: 600 }}>
+              ค้นหา
+            </Link>
+          </>
         )}
         <span className="spacer" />
         {me && (

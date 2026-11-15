@@ -8,7 +8,9 @@ import { StorageService } from '../common/storage.service';
 import { CompanyAccessService } from '../companies/company-access.service';
 import { InjectDb, type Db } from '../db/database';
 import type { Database, Document, FieldSettings, FieldType, User } from '../db/types';
+import { JobsService } from '../jobs/jobs.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { normalizeThai } from '../search/thai-normalize';
 import { DocumentAccessService, type DocAccess } from './document-access.service';
 import { DocumentEventsService } from './document-events';
 import { prepareSource, UploadRejected } from './pdf/inspect';
@@ -45,6 +47,7 @@ export class DocumentsService {
     private readonly events: DocumentEventsService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly jobs: JobsService,
   ) {}
 
   // ------------------------------------------------------------------ create (DOC-01, DOC-02, DOC-08)
@@ -81,6 +84,7 @@ export class DocumentsService {
           description: info.description?.trim() || null,
           doc_type: info.docType?.trim() || null,
           tags: info.tags ?? [],
+          title_normalized: normalizeThai(title),
           original_name: name.slice(0, 255),
           original_mime: prepared.kind === 'pdf' ? 'application/pdf' : prepared.kind === 'png' ? 'image/png' : 'image/jpeg',
           original_key: originalKey,
@@ -96,6 +100,8 @@ export class DocumentsService {
         .values(prepared.pages.map((p, i) => ({ document_id: id, page_no: i + 1, width: p.x1 - p.x0, height: p.y1 - p.y0, rotation: p.rotation })))
         .execute();
       await this.events.log({ documentId: id, type: 'created', actor: user, details: { fileName: name, pages: prepared.pages.length }, meta }, trx);
+      // DOC-08 / SRC-06: read the text of every page (and OCR scans) in the background
+      await this.jobs.enqueue('document.extract_text', { documentId: id }, new Date(), trx);
     });
     return { id };
   }
@@ -112,7 +118,10 @@ export class DocumentsService {
   async updateDraft(user: User, id: string, patch: DraftPatch) {
     await this.requireDraftOwner(user, id);
     const set: Record<string, unknown> = { updated_at: new Date() };
-    if (patch.title !== undefined) set.title = patch.title.trim();
+    if (patch.title !== undefined) {
+      set.title = patch.title.trim();
+      set.title_normalized = normalizeThai(patch.title);
+    }
     if (patch.description !== undefined) set.description = patch.description?.trim() || null;
     if (patch.docType !== undefined) set.doc_type = patch.docType?.trim() || null;
     if (patch.tags !== undefined) set.tags = [...new Set(patch.tags.map((t) => t.trim()).filter(Boolean))].slice(0, 20);
@@ -398,7 +407,7 @@ export class DocumentsService {
       .orderBy('s.order_index')
       .orderBy('s.created_at')
       .execute();
-    const pages = await this.db.selectFrom('document_pages').select(['page_no as pageNo', 'width', 'height', 'rotation']).where('document_id', '=', id).orderBy('page_no').execute();
+    const pages = await this.db.selectFrom('document_pages').select(['page_no as pageNo', 'width', 'height', 'rotation', 'text_source as textSource', 'ocr_status as ocrStatus']).where('document_id', '=', id).orderBy('page_no').execute();
     const canSeeFields = a.roles.has('creator') || a.isAdmin;
     const fields = canSeeFields
       ? await this.db
@@ -441,6 +450,9 @@ export class DocumentsService {
       finalReady: Boolean(doc.final_key),
       sealStatus: doc.seal_status,
       timestamped: doc.timestamped,
+      textStatus: doc.text_status,
+      ocrPages: pages.filter((p) => p.textSource === 'ocr').length,
+      ocrFailedPages: pages.filter((p) => p.ocrStatus === 'failed').length,
       createdAt: doc.created_at,
       sentAt: doc.sent_at,
       completedAt: doc.completed_at,

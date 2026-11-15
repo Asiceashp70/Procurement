@@ -65,6 +65,13 @@ export function DocumentDetailPage() {
           {d.signingMode === 'sequential' ? 'เซ็นตามลำดับ' : 'เซ็นพร้อมกัน'}
         </div>
         {d.description && <p className="small" style={{ marginTop: 8 }}>{d.description}</p>}
+        <div className="muted small" style={{ marginTop: 4 }}>
+          {['pending', 'extracting', 'ocr'].includes(d.textStatus)
+            ? '⏳ กำลังอ่านเอกสารเพื่อให้ค้นหาเนื้อหาได้'
+            : d.textStatus === 'failed'
+              ? `⚠️ อ่านข้อความบางหน้าไม่สำเร็จ (${d.ocrFailedPages} หน้า) ค้นได้เฉพาะหน้าที่อ่านได้`
+              : `ค้นหาเนื้อหาได้แล้ว${d.ocrPages ? ` (อ่านด้วย OCR ${d.ocrPages} หน้า)` : ''}`}
+        </div>
         {d.voidReason && <div className="alert alert-warn small">ยกเลิกเพราะ: {d.voidReason}</div>}
         {msg && <div className="alert alert-ok small">{msg}</div>}
         {error && <div className="alert alert-error small">{error}</div>}

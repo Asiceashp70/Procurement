@@ -194,3 +194,7 @@ dialog::backdrop { background: rgba(0,0,0,0.35); }
 .modal { background: var(--card); width: min(560px, 100%); border-radius: 16px 16px 0 0; padding: 16px; max-height: 92vh; overflow-y: auto; }
 @media (min-width: 640px) { .modal-backdrop { align-items: center; } .modal { border-radius: 16px; } }
 .hash { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.75rem; word-break: break-all; }
+
+/* ---------------- phase 3: search */
+mark { background: #ffe58a; color: inherit; padding: 0 1px; border-radius: 2px; }
+.hl-box { position: absolute; background: rgba(255, 214, 0, 0.38); outline: 2px solid rgba(230, 160, 0, 0.8); border-radius: 2px; pointer-events: none; mix-blend-mode: multiply; }

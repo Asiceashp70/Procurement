@@ -33,10 +33,10 @@ export class JobsService implements OnModuleInit, OnApplicationShutdown {
     this.handlers.set(type, handler);
   }
 
-  async enqueue(type: string, payload: Record<string, unknown>, runAt: Date = new Date(), trx?: Transaction<Database>) {
+  async enqueue(type: string, payload: Record<string, unknown>, runAt: Date = new Date(), trx?: Transaction<Database>, maxAttempts = 3) {
     await (trx ?? this.db)
       .insertInto('jobs')
-      .values({ type, payload: JSON.stringify(payload), run_at: runAt })
+      .values({ type, payload: JSON.stringify(payload), run_at: runAt, max_attempts: maxAttempts })
       .execute();
   }
 

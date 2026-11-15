@@ -40,6 +40,9 @@ const schema = z.object({
     .optional()
     .transform((v) => v !== 'false'),
   PDPA_CONSENT_VERSION: z.string().default('2026-11-v1'),
+  /** OCR worker (Python, local only), e.g. http://127.0.0.1:8090. Empty = no OCR. */
+  OCR_WORKER_URL: z.string().url().optional().or(z.literal('').transform(() => undefined)),
+  OCR_WORKER_TOKEN: z.string().default(''),
   /** RFC 3161 Time Stamping Authority used when sealing (optional). */
   TSA_URL: z.string().url().optional().or(z.literal('').transform(() => undefined)),
 });

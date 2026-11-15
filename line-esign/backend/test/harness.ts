@@ -25,7 +25,8 @@ export interface Harness {
 
 let phone = 891000000;
 
-export async function startHarness(): Promise<Harness> {
+export async function startHarness(configOverrides?: Record<string, string>): Promise<Harness> {
+  if (configOverrides) useTestConfig(configOverrides);
   await resetDatabase();
   await migrate(TEST_DB_URL, () => undefined);
   const app = await createApp();

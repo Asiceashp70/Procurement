@@ -3,15 +3,29 @@
 ระบบเซ็นเอกสารออนไลน์ผ่าน LINE ตาม PRD (Nov 15, 2026) สร้างตาม stack ที่ PRD กำหนด:
 **NestJS + PostgreSQL 16 + React/Vite** บน Windows Server เครื่องเดียว ไม่ใช้ Docker และ Redis
 
-> สถานะ: **เฟส 1 (ราฐาน) และเฟส 2 (เอกสาร + การเซ็น) เสร็จแล้ว**
-> เฟส 3 (ค้นหาเนื้อหา + OCR) และเฟส 4 (นำร่อง) ยังไม่ได้ทำ
+> สถานะ: **เฟส 1 (ราฐาน), เฟส 2 (เอกสาร + การเซ็น) และเฟส 3 (ค้นหา + OCR) เสร็จแล้ว**
+> เหลือเฟส 4 (นำร่องกับบริษัทจริง) และการทดสอบ OCR กับโมเดล OpenThai จริง
 
 ```
 line-esign/
   backend/    NestJS API  (Kysely + pg, คิวงานใน PostgreSQL)
   frontend/   React + Vite + TypeScript (mobile-first)
+  ocr-worker/ Python + FastAPI + ONNX Runtime (CPU) อ่านหน้าสแกน
   deploy/     Caddyfile, สคริปต์ติดตั้ง Windows service (NSSM), สคริปต์สำรองข้อมูล
 ```
+
+## สิ่งที่ทำแล้วในเฟส 3
+
+| รหัส | ทำแล้ว | หมายเหตุ |
+|---|---|---|
+| DOC-08 | ✅ | ตอนอัปโหลด ดึงข้อความทุกหน้าด้วย pdf.js (child process ไม่บล็อก API) พร้อมกรอบบรรทัดสำหรับไฮไลต์ |
+| SRC-01..03 | ✅ | ค้นส่วนตัว (เอกสารที่ฉันสร้าง/ต้องเซ็น/เซ็นแล้ว), ทั้งบริษัท (Company Admin), ทุกบริษัท (Super Admin), ตัวกรอง สถานะ ช่วงวันที่ ผู้สร้าง ผู้เซ็น แผนก ประเภท แท็ก เลยกำหนด ใช้ร่วมกับคำค้นได้ |
+| SRC-04 | ✅ | ผลค้นบอกหน้าและข้อความรอบคำที่เจอ กดแล้วเปิดหน้านั้นพร้อมไฮไลต์ (การเปิดเอกสารคนอื่นของ Admin ถูกบันทึก) |
+| SRC-05 | ✅ | แปลงอักษรเพี้ยน (รหัส PUA ของฟอนต์ไทยรุ่นเก่า, ํ+า → ำ, วรรณยุกต์ก่อนสระบน, เลขไทย) ตัดช่องว่าง แล้วทำ index `pg_trgm` คำค้นผ่านขั้นตอนเดียวกัน ค้น "สัญญาจ้าง" เจอ "สัญญา จ้าง" |
+| SRC-06..08 | ✅ | หน้าที่มีข้อความน้อยกว่า 20 ตัวอักษรและไฟล์รูปเข้าคิว OCR อัตโนมัติ, ผู้ใช้เห็น "กำลังอ่านเอกสาร", OCR worker แยกเป็นบริการ Python (ดู `ocr-worker/README.md`), ผลจาก OCR มีป้าย "จาก OCR" และค่าความมั่นใจ |
+| SRC-09 | ✅ | ทดสอบกับข้อมูลจำลอง 100,000 หน้า: คำที่หายาก 5 ms, คำที่มีแทบทุกหน้า ≤ 402 ms, คำที่ไม่มี 2 ms (`SEARCH_BENCH=1 npx jest test/search.bench.spec.ts`) |
+
+**แก้เพิ่มจากเฟส 2:** ไฟล์ฉบับสมบูรณ์ที่ระบบสร้าง ตอนนี้คัดลอกหรือดึงข้อความภาษาไทยออกมาได้ถูกต้อง (เดิมหน้าตาถูกแต่ข้อความที่คัดลอกเพี้ยน เพราะ pdf-lib ไม่ลง Unicode ให้ glyph ที่ถูกแทนที่ตอนจัดรูป)
 
 ## สิ่งที่ทำแล้วในเฟส 2
 
@@ -52,6 +66,13 @@ pdf-lib วาดข้อความไทยผิด (วรรณยุก�
 | NFR | ✅ | ตรวจ Origin ทุก request ที่เปลี่ยนข้อมูล, rate limit, ไฟล์เข้ารหัส AES-256-GCM, audit log แก้/ลบไม่ได้ (trigger), health check, เวลาเก็บเป็น UTC แสดงเป็นเวลาไทย พ.ศ. |
 
 ### สิ่งที่ผมตีความเอง (ควรยืนยันกับเจ้าของ PRD)
+
+เฟส 3:
+
+12. **ไฮไลต์อยู่ระดับคำโดยประมาณ** คำนวณตำแหน่งในบรรทัดจากจำนวนตัวอักษร (เผื่อขอบครึ่งตัวอักษร) ถ้าคำค้นข้ามบรรทัดจะเปิดหน้าถูกแต่ไม่ไฮไลต์
+13. **ค้นในข้อความต้นฉบับ** (ก่อนเซ็น) ไม่ได้ค้นข้อความที่ผู้เซ็นพิมพ์ลงช่อง ค้นทั้งบริษัทเห็นเฉพาะเอกสารที่ส่งแล้ว (ร่างเป็นของผู้สร้าง)
+14. **แผนก** ในตัวกรองหมายถึงแผนกของผู้สร้างเอกสาร
+15. คำค้นต้องยาวอย่างน้อย 2 ตัวอักษร (หลังตัดช่องว่าง)
 
 เฟส 2:
 
@@ -99,6 +120,8 @@ npm run dev                   # http://localhost:5173  (proxy /api ไปที�
 ```bash
 cd backend && npm test        # 45 เคส: unit, PDF/ซีล (ต้องมี openssl และ pdfsig), e2e กับ PostgreSQL จริง (สร้างฐาน esign_test_N ใหม่ทุกครั้ง)
 cd frontend && npm test       # อัลกอริทึมไดคัทลายเซ็น 8 เคส
+cd ocr-worker && python -m pytest tests   # OCR worker 5 เคส (ใช้โมเดล PP-OCRv3 แทน)
+cd backend && SEARCH_BENCH=1 npx jest test/search.bench.spec.ts   # ความเร็วค้นหา 100,000 หน้า (ใช้ดิสก์ราว 1 GB)
 ```
 
 ## ตั้งค่า LINE
@@ -127,8 +150,9 @@ cd frontend && npm test       # อัลกอริทึมไดคัทล
    - **สำรอง `FILE_ENCRYPTION_KEY` แยกไว้ที่ปลอดภัย** ถ้าหายจะเปิดลายเซ็นที่เก็บไว้ไม่ได้
 4. `deploy\install-service.ps1` ติดตั้ง API เป็น Windows service ที่เริ่มใหม่เองเมื่อล่ม
 5. แก้โดเมนใน `deploy\Caddyfile` แล้วติดตั้ง Caddy เป็น service (`nssm install caddy caddy.exe run --config C:\esign\deploy\Caddyfile`)
-6. ตั้ง Task Scheduler ให้รัน `deploy\backup.ps1` ทุกคืน (pg_dump + สำเนาไฟล์ไป NAS เก็บ 30 วัน) และทดสอบกู้คืนทุกไตรมาส
-7. ตั้งระบบ monitor ให้เรียก `https://<โดเมน>/api/health` และแจ้งผู้ดูแลเมื่อไม่ตอบ
+6. OCR: ติดตั้ง Python 3.12 และ `ocr-worker` ตาม `ocr-worker/README.md` แล้วรัน `deploy\install-ocr-service.ps1` และตั้ง `OCR_WORKER_URL=http://127.0.0.1:8090` ใน `backend\.env`
+7. ตั้ง Task Scheduler ให้รัน `deploy\backup.ps1` ทุกคืน (pg_dump + สำเนาไฟล์ไป NAS เก็บ 30 วัน) และทดสอบกู้คืนทุกไตรมาส
+8. ตั้งระบบ monitor ให้เรียก `https://<โดเมน>/api/health` และ `http://127.0.0.1:8090/health` (OCR) แล้วแจ้งผู้ดูแลเมื่อไม่ตอบ
 
 ## API (เฟส 1)
 
@@ -156,10 +180,11 @@ cd frontend && npm test       # อัลกอริทึมไดคัทล
 | `GET /companies/:id/signer-candidates` · `GET/POST/PATCH /companies/:id/stamps` | ผู้เซ็นที่เลือกได้, ตราประทับ |
 | `GET/POST /admin/companies/:id/certificates` · `POST /admin/certificates/:id/deactivate` | ใบรับรองดิจิทัล |
 | `POST /verify` | ตรวจไฟล์ด้วย SHA-256 |
+| `GET /search?q=&scope=mine\|company\|all&companyId=&status=&from=&to=&creatorId=&signerId=&departmentId=&docType=&tag=&overdue=` · `GET /search/facets` | ค้นหาเอกสารและเนื้อหา |
+| `GET /documents/:id/pages/:pageNo/highlights?q=` | ตำแหน่งไฮไลต์คำค้นในหน้า |
 
-## ต่อไป: เฟส 3 (ค้นหา + OCR)
+## ต่อไป: เฟส 4 (นำร่อง + ขึ้นจริง)
 
-- ดึงข้อความรายหน้าตอนอัปโหลด (pdf.js ฝั่ง server) แปลงอักษรไทยเพี้ยน (PUA) แล้วเก็บใน `document_pages.text_normalized` พร้อม index `pg_trgm`
-- OCR worker (Python + FastAPI + OpenThai2.0-OCR-Text บน CPU) สำหรับหน้าที่มีข้อความน้อยกว่า 20 ตัวอักษรและไฟล์รูป ใช้คิว `jobs` ที่มีอยู่แล้ว
-- หน้าค้นหา (ของฉัน / หลังบ้าน) พร้อมตัวกรอง ผลค้นบอกหน้าและไฮไลต์คำ
-- ทดสอบความเร็วค้นหาในเอกสาร 100,000 หน้า (SRC-09)
+- ดาวน์โหลดโมเดล OpenThai2.0-OCR-Text (เปิด huggingface.co) ตรวจค่าตั้งตาม model card และทดสอบกับเอกสารสแกนจริงของบริษัท
+- ตั้ง LINE channel จริง ใบรับรองนิติบุคคลจริง และ TSA ของ CA แล้วทดสอบครบเส้นทางบนมือถือจริง (LINE in-app browser บน iOS/Android)
+- นำร่องกับบริษัทเดียว เก็บ feedback ซ้อมสำรองและกู้คืนข้อมูล ทำคู่มือผู้ใช้

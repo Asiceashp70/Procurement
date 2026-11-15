@@ -68,6 +68,9 @@ export interface DocDetail {
   finalReady: boolean;
   sealStatus: 'none' | 'sealed' | 'no_certificate' | 'failed';
   timestamped: boolean;
+  textStatus: 'pending' | 'extracting' | 'ocr' | 'ready' | 'failed';
+  ocrPages: number;
+  ocrFailedPages: number;
   createdAt: string;
   sentAt: string | null;
   completedAt: string | null;

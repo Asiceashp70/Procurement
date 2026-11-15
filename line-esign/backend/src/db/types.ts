@@ -251,8 +251,19 @@ export interface DocumentsTable {
   due_soon_notified_at: NullableTimestamp;
   overdue_notices_sent: Generated<number>;
   last_overdue_notice_at: NullableTimestamp;
+  title_normalized: string | null;
+  text_status: Generated<'pending' | 'extracting' | 'ocr' | 'ready' | 'failed'>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+}
+
+export interface PageLine {
+  t: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  c?: number; // OCR confidence 0..1
 }
 
 export interface DocumentPagesTable {
@@ -265,6 +276,9 @@ export interface DocumentPagesTable {
   text_normalized: string | null;
   text_source: 'pdf' | 'ocr' | null;
   ocr_confidence: number | null;
+  lines: Json<PageLine[]> | null;
+  ocr_status: Generated<'none' | 'queued' | 'done' | 'failed' | 'skipped'>;
+  extracted_at: NullableTimestamp;
 }
 
 export interface DocumentSignersTable {

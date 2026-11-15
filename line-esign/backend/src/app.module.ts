@@ -13,6 +13,9 @@ import { DocumentsService } from './documents/documents.service';
 import { FinalizeService } from './documents/finalize.service';
 import { SchedulerService } from './documents/scheduler.service';
 import { SigningService } from './documents/signing.service';
+import { SearchController } from './search/search.controller';
+import { SearchService } from './search/search.service';
+import { TextService } from './search/text.service';
 import { AuditService } from './audit/audit.service';
 import { AuthController } from './auth/auth.controller';
 import { AuthGuard } from './auth/auth.guard';
@@ -39,7 +42,7 @@ import { UsersService } from './users/users.service';
       throttlers: [{ name: 'default', ttl: 60_000, limit: 300 }],
       skipIf: () => config().NODE_ENV === 'test',
     })],
-  controllers: [HealthController, AuthController, MeController, CompaniesController, StampsController, AdminController, DocumentsController, LineWebhookController],
+  controllers: [HealthController, AuthController, MeController, CompaniesController, StampsController, AdminController, DocumentsController, SearchController, LineWebhookController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },
@@ -63,6 +66,8 @@ import { UsersService } from './users/users.service';
     SigningService,
     FinalizeService,
     SchedulerService,
+    TextService,
+    SearchService,
   ],
 })
 export class AppModule implements NestModule {
