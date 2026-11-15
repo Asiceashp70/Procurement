@@ -57,6 +57,25 @@ New-Item -ItemType Directory -Force -Path $InstallDir, $Tools, $Secrets, $Logs, 
 icacls $Secrets /inheritance:r /grant:r 'Administrators:(OI)(CI)F' 'SYSTEM:(OI)(CI)F' | Out-Null
 Write-Host "ZenHere install: $Mode mode, into $InstallDir" -ForegroundColor Green
 
+# Check ports before the slow steps. Our own Caddy (from an earlier run) may already hold the port.
+$caddy = Join-Path $Tools 'caddy.exe'
+function Test-PortFree([int]$p) {
+  $users = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue | Where-Object { (Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).Path -ne $caddy }
+  return -not $users
+}
+$candidates = @(8090, 8088, 8888, 9080, 9090, 18080)
+if ($Domain) {
+  foreach ($p in @(80, 443)) {
+    if (-not (Test-PortFree $p)) { Fail "Port $p is used by another program (often IIS). Production mode needs ports 80 and 443 for HTTPS." }
+  }
+} elseif (-not (Test-PortFree $HttpPort)) {
+  $free = $candidates | Where-Object { Test-PortFree $_ } | Select-Object -First 1
+  if ($PSBoundParameters.ContainsKey('HttpPort')) { Fail "Port $HttpPort is used by another program. Run again with -HttpPort $free" }
+  if (-not $free) { Fail 'Ports 80, 8090, 8088, 8888, 9080, 9090 and 18080 are all in use. Run again with -HttpPort <a free port>.' }
+  Note "port $HttpPort is used by another program (often IIS); using port $free instead"
+  $HttpPort = $free
+}
+
 # ------------------------------------------------------------------ 1 Node.js
 Step '1/8 Node.js 22'
 Refresh-Path
@@ -235,10 +254,6 @@ $hsts
 $caddyPath = Join-Path $InstallDir 'Caddyfile'
 [IO.File]::WriteAllText($caddyPath, $caddyfile)
 
-$port = $HttpPort
-if ($Domain) { $port = 443 }
-$busy = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Where-Object { (Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue).Path -ne $caddy }
-if ($busy) { Fail "Port $port is already used by another program (often IIS). Stop it, or run again with -HttpPort 8080." }
 
 function Install-ZenService([string]$name, [string]$exe, [string]$arguments, [string]$dir, [string]$log) {
   if (Get-Service -Name $name -ErrorAction SilentlyContinue) {
