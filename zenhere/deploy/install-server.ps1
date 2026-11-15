@@ -8,17 +8,23 @@
     zenhere-api  Node.js API on 127.0.0.1:3100
     zenhere-web  Caddy: serves the web app and forwards /api to the API
 
-  Test mode (no -Domain): http://<server address>, demo accounts and the test
-  notification inbox, for the office network only. Production mode (-Domain):
-  HTTPS certificate from Let's Encrypt and login with the LINE Login channel.
+  Test mode (no -Domain/-PublicUrl): http://<server address>, demo accounts and the
+  test notification inbox, for the office network only.
+  Production mode with -Domain: this server gets the HTTPS certificate (Let's Encrypt,
+  needs ports 80 and 443 open to the internet).
+  Production mode with -PublicUrl: HTTPS is provided in front of this server, e.g. by a
+  Cloudflare Tunnel whose Service URL is http://localhost:<HttpPort>.
 
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File .\deploy\install-server.ps1
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File .\deploy\install-server.ps1 -Domain zenhere.example.co.th
+.EXAMPLE
+  powershell -ExecutionPolicy Bypass -File .\deploy\install-server.ps1 -PublicUrl https://zenhere.example.co.th -HttpPort 8090
 #>
 param(
   [string]$Domain = '',
+  [string]$PublicUrl = '',
   [string]$Address = '',
   [int]$HttpPort = 80,
   [string]$InstallDir = 'C:\zenhere',
@@ -52,7 +58,12 @@ $Secrets = Join-Path $InstallDir 'secrets'
 $Logs = Join-Path $InstallDir 'logs'
 $Data = Join-Path $InstallDir 'data'
 $Mode = 'test'
-if ($Domain) { $Mode = 'production' }
+if ($Domain -and $PublicUrl) { Fail 'Use either -Domain or -PublicUrl, not both.' }
+if ($PublicUrl) {
+  $PublicUrl = $PublicUrl.TrimEnd('/')
+  if ($PublicUrl -notmatch '^https://[a-z0-9.-]+$') { Fail '-PublicUrl must look like https://zenhere.example.co.th' }
+}
+if ($Domain -or $PublicUrl) { $Mode = 'production' }
 New-Item -ItemType Directory -Force -Path $InstallDir, $Tools, $Secrets, $Logs, $Data | Out-Null
 icacls $Secrets /inheritance:r /grant:r 'Administrators:(OI)(CI)F' 'SYSTEM:(OI)(CI)F' | Out-Null
 Write-Host "ZenHere install: $Mode mode, into $InstallDir" -ForegroundColor Green
@@ -163,6 +174,8 @@ if ($srcFull -ne $App.TrimEnd('\')) {
 Step '5/8 Settings'
 if ($Domain) {
   $Origin = "https://$Domain"
+} elseif ($PublicUrl) {
+  $Origin = $PublicUrl
 } else {
   if (-not $Address) {
     # the adapter with a default gateway is the one on the office network (not a Hyper-V/WSL virtual switch)
@@ -234,6 +247,9 @@ if (-not $Domain) { $site = ":$HttpPort"; $hsts = '' }
 $caddyfile = @"
 {
 	admin off
+	servers {
+		trusted_proxies static 127.0.0.1/32 ::1/128
+	}
 }
 $site {
 	encode gzip
@@ -292,6 +308,7 @@ Note 'nightly backup scheduled (task "ZenHere backup")'
 Step '8/8 Firewall and health check'
 $ports = @($HttpPort)
 if ($Domain) { $ports = @(80, 443) }
+if ($PublicUrl) { $ports = @() }   # the tunnel connects out; nothing has to be opened
 foreach ($p in $ports) {
   if (-not (Get-NetFirewallRule -DisplayName "ZenHere $p" -ErrorAction SilentlyContinue)) {
     New-NetFirewallRule -DisplayName "ZenHere $p" -Direction Inbound -Protocol TCP -LocalPort $p -Action Allow | Out-Null
@@ -311,6 +328,9 @@ Write-Host '==============================================================' -For
 if ($Mode -eq 'test') {
   Write-Host ' Test mode: open the address above from any PC or phone on this network'
   Write-Host ' and pick a demo account. Do not open this port to the internet.'
+}
+if ($PublicUrl) {
+  Write-Host " Tunnel: the public hostname must point to http://localhost:$HttpPort on this server."
 }
 $lineConfigured = Select-String -Path $envFile -Pattern '^LINE_LOGIN_CHANNEL_ID=(.+)$'
 if ($lineConfigured) {
