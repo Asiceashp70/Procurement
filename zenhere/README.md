@@ -144,17 +144,42 @@ cd backend && SEARCH_BENCH=1 npx jest test/search.bench.spec.ts   # ความ
 2. Super Admin เข้า "หลังบ้าน Super Admin" → บริษัท → 🔐 ใบรับรองดิจิทัล → อัปโหลดไฟล์พร้อมรหัสผ่าน ระบบตรวจรหัสผ่านและวันหมดอายุก่อนบันทึก
 3. ถ้า CA มีบริการ TSA ให้ใส่ URL ใน `TSA_URL` (และเปิด firewall ให้ server ออกไปหา host นั้นได้)
 
-## ติดตั้งบน Windows Server
+## ติดตั้งบน Windows Server (คำสั่งเดียว)
 
-1. ติดตั้ง Node.js 22 LTS, PostgreSQL 16, [Caddy](https://caddyserver.com) และ [NSSM](https://nssm.cc)
-2. วางโค้ดที่ `C:\zenhere` แล้ว `npm ci && npm run build` ทั้งใน `backend` และ `frontend`
-3. สร้าง `backend\.env` จาก `.env.example` ตั้ง `NODE_ENV=production`, `DEV_LOGIN_ENABLED=false`, `APP_ORIGIN` และ `API_BASE_URL` เป็นโดเมนจริง
-   - **สำรอง `FILE_ENCRYPTION_KEY` แยกไว้ที่ปลอดภัย** ถ้าหายจะเปิดลายเซ็นที่เก็บไว้ไม่ได้
-4. `deploy\install-service.ps1` ติดตั้ง API เป็น Windows service ที่เริ่มใหม่เองเมื่อล่ม
-5. แก้โดเมนใน `deploy\Caddyfile` แล้วติดตั้ง Caddy เป็น service (`nssm install caddy caddy.exe run --config C:\zenhere\deploy\Caddyfile`)
-6. OCR: ติดตั้ง Python 3.12 และ `ocr-worker` ตาม `ocr-worker/README.md` แล้วรัน `deploy\install-ocr-service.ps1` และตั้ง `OCR_WORKER_URL=http://127.0.0.1:8090` ใน `backend\.env`
-7. ตั้ง Task Scheduler ให้รัน `deploy\backup.ps1` ทุกคืน (pg_dump + สำเนาไฟล์ไป NAS เก็บ 30 วัน) และทดสอบกู้คืนทุกไตรมาส
-8. ตั้งระบบ monitor ให้เรียก `https://<โดเมน>/api/health` และ `http://127.0.0.1:8090/health` (OCR) แล้วแจ้งผู้ดูแลเมื่อไม่ตอบ
+ใช้ `deploy\install-server.ps1` ติดตั้งครั้งแรกและอัปเดตครั้งต่อไปด้วยคำสั่งเดิม สคริปต์จะ
+ติดตั้งสิ่งที่ยังไม่มี (Node.js 22, PostgreSQL 16, NSSM, Caddy) สร้างฐานข้อมูล เขียน `backend\.env`
+build แล้วรันเป็น Windows service 2 ตัว (`zenhere-api`, `zenhere-web`) เปิด firewall และตั้งสำรองข้อมูลทุกคืน 02:15
+
+1. คัดลอกโฟลเดอร์ `zenhere` ไปไว้บน server (เช่น `C:\setup\zenhere`)
+2. เปิด PowerShell แบบ **Run as Administrator** แล้วรัน
+
+   **โหมดทดสอบในวงแลน** (ยังไม่มีโดเมน): เปิดที่ `http://<IP ของ server>` มีบัญชีทดลองและกล่องแจ้งเตือนทดสอบ
+   ```powershell
+   cd C:\setup\zenhere
+   powershell -ExecutionPolicy Bypass -File .\deploy\install-server.ps1
+   ```
+   **โหมดใช้งานจริง** (มีโดเมนที่ชี้มาที่ server และเปิด port 80/443 จากอินเทอร์เน็ตแล้ว): ได้ HTTPS อัตโนมัติ และเข้าสู่ระบบด้วย LINE Login
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\deploy\install-server.ps1 -Domain zenhere.example.co.th
+   ```
+3. สคริปต์ถาม **LINE Login Channel ID และ Channel secret** (พิมพ์ตอนรัน ไม่เก็บใน repo) แล้วแสดง Callback URL
+   ให้ไปใส่ใน LINE Developers Console > LINE Login channel > แท็บ LINE Login > Callback URL
+4. เข้าสู่ระบบครั้งแรกแล้วตั้งตัวเองเป็น Super Admin: `powershell -ExecutionPolicy Bypass -File C:\zenhere\app\deploy\set-super-admin.ps1`
+
+| โฟลเดอร์ | เก็บอะไร |
+|---|---|
+| `C:\zenhere\app` | โปรแกรม (ถูกเขียนทับตอนอัปเดต) |
+| `C:\zenhere\data` | ไฟล์เอกสาร ลายเซ็น ตรา ใบรับรอง (เข้ารหัส) |
+| `C:\zenhere\secrets` | รหัสผ่านฐานข้อมูล (เฉพาะ Administrators) |
+| `C:\zenhere\backups` | สำรองทุกคืน เก็บ 30 วัน (ปรับเป็น NAS ได้ใน Task Scheduler: `-BackupDir \\nas\backup\zenhere`) |
+| `C:\zenhere\logs` | log ของ API และเว็บ |
+
+- **สำรอง `FILE_ENCRYPTION_KEY`** (อยู่ใน `C:\zenhere\app\backend\.env` และใน backup ทุกคืน) ไว้ที่ปลอดภัยแยกจาก server ถ้าหาย จะเปิดไฟล์เอกสารที่เก็บไว้ไม่ได้
+- โหมดทดสอบห้ามเปิดออกอินเทอร์เน็ต (มีบัญชีทดลองที่ใครก็เข้าได้)
+- ถ้า port 80 ถูก IIS ใช้อยู่ ให้หยุด IIS หรือรันด้วย `-HttpPort 8080`
+- LINE ต้องใช้ HTTPS สำหรับใช้งานจริง ในโหมดทดสอบ (http) LINE อาจไม่ยอมรับ Callback URL ระหว่างนั้นใช้บัญชีทดลองได้
+- การแจ้งเตือนทาง LINE ต้องมี Messaging API channel เพิ่ม (Channel secret + access token) ใส่ใน `.env` แล้วรันสคริปต์ซ้ำ
+- OCR: ดู `ocr-worker/README.md` และ `deploy\install-ocr-service.ps1`
 
 ## API (เฟส 1)
 

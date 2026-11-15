@@ -1,10 +1,10 @@
 # Installs the OCR worker as a Windows service with NSSM. Run as Administrator.
 param(
   [string]$Root = "C:\zenhere",
-  [string]$Nssm = "C:\tools\nssm\nssm.exe",
+  [string]$Nssm = "C:\zenhere\tools\nssm.exe",
   [int]$Port = 8090
 )
-$dir = Join-Path $Root "ocr-worker"
+$dir = Join-Path $Root "app\ocr-worker"
 $python = Join-Path $dir ".venv\Scripts\python.exe"
 $models = Join-Path $dir "models"
 
