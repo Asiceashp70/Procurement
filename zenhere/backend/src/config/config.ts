@@ -28,6 +28,11 @@ const schema = z.object({
   LINE_MESSAGING_ACCESS_TOKEN: z.string().default(''),
   /** Basic ID of the OA, e.g. @123abcde, used for the "add friend" link. */
   LINE_OA_BASIC_ID: z.string().default(''),
+  /** LIFF app (in the LINE Login channel) whose endpoint is APP_ORIGIN. When set, LINE message buttons open inside LINE. */
+  LIFF_ID: z
+    .string()
+    .regex(/^(\d+-[A-Za-z0-9]+)?$/, 'LIFF_ID looks like 1234567890-AbCdEfGh')
+    .default(''),
   /** Comma-separated LINE userIds that are Super Admins. The first login never grants this by itself. */
   SUPER_ADMIN_LINE_USER_IDS: z.string().default(''),
 

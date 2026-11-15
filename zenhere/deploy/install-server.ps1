@@ -21,6 +21,9 @@
   powershell -ExecutionPolicy Bypass -File .\deploy\install-server.ps1 -Domain zenhere.example.co.th
 .EXAMPLE
   powershell -ExecutionPolicy Bypass -File .\deploy\install-server.ps1 -PublicUrl https://zenhere.example.co.th -HttpPort 8090
+.EXAMPLE
+  powershell -ExecutionPolicy Bypass -File .\deploy\install-server.ps1 -PublicUrl https://zenhere.example.co.th -HttpPort 8090 -LiffId 1234567890-AbCdEfGh
+  (LIFF: links in LINE messages open the app inside LINE, already logged in. -LiffId none turns it off.)
 #>
 param(
   [string]$Domain = '',
@@ -29,6 +32,7 @@ param(
   [int]$HttpPort = 80,
   [string]$InstallDir = 'C:\zenhere',
   [string]$LineLoginChannelId = '',
+  [string]$LiffId = '',
   [switch]$NoDemoData
 )
 
@@ -198,6 +202,7 @@ if ($lineId -or -not $hasLineSecret) {
 }
 $nodeArgs = @('scripts\configure-env.cjs', '--mode', $Mode, '--origin', $Origin, '--db-url', "postgres://zenhere:$dbPw@127.0.0.1:5432/zenhere", '--storage-dir', (Join-Path $Data 'files'))
 if ($lineId) { $nodeArgs += @('--line-login-id', $lineId) }
+if ($LiffId) { $nodeArgs += @('--liff-id', $LiffId) }
 Push-Location $backend
 & node @nodeArgs
 $rc = $LASTEXITCODE
@@ -351,6 +356,14 @@ if ($lineConfigured) {
   Write-Host ''
   Write-Host ' LINE Developers Console > your LINE Login channel > LINE Login tab > Callback URL:'
   Write-Host "   $Origin/api/auth/line/callback" -ForegroundColor Yellow
+  $liffConfigured = Select-String -Path $envFile -Pattern '^LIFF_ID=(.+)$'
+  if ($liffConfigured) {
+    Write-Host ' LIFF app (LIFF tab) > Endpoint URL:'
+    Write-Host "   $Origin" -ForegroundColor Yellow
+    Write-Host "   Links in LINE messages now open https://liff.line.me/$($liffConfigured.Matches[0].Groups[1].Value)"
+  } else {
+    Write-Host ' Optional: add a LIFF app (Size Full, scopes openid + profile) and rerun with -LiffId <LIFF ID>'
+  }
   Write-Host ' After your first login, make yourself Super Admin:'
   Write-Host "   powershell -ExecutionPolicy Bypass -File $App\deploy\set-super-admin.ps1"
 }

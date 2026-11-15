@@ -5,6 +5,7 @@ import { config } from '../config/config';
 import { InjectDb, type Db } from '../db/database';
 import type { User } from '../db/types';
 import { SchedulerService } from '../documents/scheduler.service';
+import { pathOfLink } from '../notifications/links';
 import { buildCards } from '../notifications/templates';
 
 /**
@@ -58,7 +59,6 @@ export class DevController {
       .orderBy('created_at', 'desc')
       .limit(100)
       .execute();
-    const app = config().APP_ORIGIN.replace(/\/$/, '');
     return rows.map((r) => {
       let cards: ReturnType<typeof buildCards> = [];
       try {
@@ -69,7 +69,7 @@ export class DevController {
       // links are relative so they also work from a phone on the local network
       return {
         ...r,
-        cards: cards.map((c) => ({ ...c, button: c.button ? { label: c.button.label, path: c.button.url.startsWith(app) ? c.button.url.slice(app.length) || '/' : c.button.url } : undefined })),
+        cards: cards.map((c) => ({ ...c, button: c.button ? { label: c.button.label, path: pathOfLink(c.button.url) } : undefined })),
       };
     });
   }

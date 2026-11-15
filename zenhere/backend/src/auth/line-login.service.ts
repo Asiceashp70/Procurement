@@ -47,6 +47,31 @@ export class LineLoginService {
     return { url: url.toString(), state, nonce, codeVerifier };
   }
 
+  /**
+   * LIFF: the web app inside LINE already holds an ID token for this channel. LINE checks
+   * its signature, audience (our channel) and expiry; the access token gives friendship status.
+   */
+  async verifyLiff(idToken: string, accessToken?: string): Promise<LineIdentity> {
+    const verifyRes = await fetch(VERIFY_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ id_token: idToken, client_id: config().LINE_LOGIN_CHANNEL_ID }),
+    });
+    if (!verifyRes.ok) throw new Error(`LIFF id_token rejected: ${verifyRes.status} ${(await verifyRes.text()).slice(0, 200)}`);
+    const claims = (await verifyRes.json()) as { sub: string; aud?: string; name?: string; picture?: string };
+    if (claims.aud && claims.aud !== config().LINE_LOGIN_CHANNEL_ID) throw new Error('LIFF id_token audience mismatch');
+    let isFriend: boolean | null = null;
+    if (accessToken) {
+      try {
+        const f = await fetch(FRIENDSHIP_URL, { headers: { authorization: `Bearer ${accessToken}` } });
+        if (f.ok) isFriend = ((await f.json()) as { friendFlag: boolean }).friendFlag;
+      } catch (err) {
+        this.log.warn(`friendship status unavailable: ${String(err)}`);
+      }
+    }
+    return { lineUserId: claims.sub, displayName: claims.name ?? null, pictureUrl: claims.picture ?? null, isFriend };
+  }
+
   async exchange(code: string, nonce: string, codeVerifier: string): Promise<LineIdentity> {
     const tokenRes = await fetch(TOKEN_URL, {
       method: 'POST',

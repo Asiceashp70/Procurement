@@ -1,11 +1,11 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { sql, type Transaction } from 'kysely';
 import { AuditService } from '../audit/audit.service';
-import { config } from '../config/config';
 import { newInviteCode, newUrlToken } from '../common/crypto';
 import type { RequestMeta } from '../common/request-meta';
 import { InjectDb, type Db } from '../db/database';
 import type { Database, Membership, MembershipStatus, User } from '../db/types';
+import { appLink } from '../notifications/links';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CompanyAccessService } from './company-access.service';
 
@@ -48,8 +48,9 @@ export class CompaniesService {
 
   // ------------------------------------------------------------ invites (ADM-02, REG-04)
 
+  /** Opens inside LINE (already logged in) when a LIFF app is set up. */
   inviteLink(token: string) {
-    return `${config().APP_ORIGIN}/join/${token}`;
+    return appLink(`/join/${token}`);
   }
 
   async invite(user: User, companyId: string) {

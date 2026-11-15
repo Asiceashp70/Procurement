@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, HttpCode, Logger, Post, Query, Req, Res } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, HttpCode, Logger, NotFoundException, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { z } from 'zod';
@@ -8,6 +8,11 @@ import { UsersService } from '../users/users.service';
 import { AllowUnregistered, Public } from './decorators';
 import { LineLoginService } from './line-login.service';
 import { clearSession, issueSession, OAUTH_COOKIE, safeNextPath, setOAuthCookie, takeOAuthCookie } from './session';
+
+const liffSchema = z.object({
+  idToken: z.string().min(20).max(4000),
+  accessToken: z.string().max(4000).optional(),
+});
 
 const devLoginSchema = z.object({
   lineUserId: z.string().regex(/^U[0-9a-f]{32}$/, 'รหัสบัญชีต้องขึ้นต้นด้วย U ตามด้วยเลขฐานสิบหก 32 ตัว'),
@@ -31,6 +36,7 @@ export class AuthController {
       lineLoginEnabled: this.line.enabled,
       devLoginEnabled: c.DEV_LOGIN_ENABLED && c.NODE_ENV !== 'production',
       oaAddFriendUrl: c.LINE_OA_BASIC_ID ? `https://line.me/R/ti/p/${encodeURIComponent(c.LINE_OA_BASIC_ID)}` : null,
+      liffId: this.line.enabled && c.LIFF_ID ? c.LIFF_ID : null,
       consentVersion: c.PDPA_CONSENT_VERSION,
     };
   }
@@ -70,6 +76,25 @@ export class AuthController {
       this.log.error(`LINE login failed: ${String(err)}`);
       res.redirect(`${app}/login?error=line_login_failed`);
     }
+  }
+
+  /** Login from inside LINE (LIFF): no redirect, the LIFF SDK already has the user's ID token. */
+  @Public()
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Post('liff')
+  @HttpCode(200)
+  async liffLogin(@Body(zbody(liffSchema)) body: z.infer<typeof liffSchema>, @Res({ passthrough: true }) res: Response) {
+    if (!this.line.enabled || !config().LIFF_ID) throw new NotFoundException();
+    let identity;
+    try {
+      identity = await this.line.verifyLiff(body.idToken, body.accessToken);
+    } catch (err) {
+      this.log.warn(String(err));
+      throw new UnauthorizedException('ยืนยันตัวตนไม่สำเร็จ กรุณาเปิดจากแอปอีกครั้ง');
+    }
+    const user = await this.users.upsertFromLine(identity);
+    issueSession(res, user.id);
+    return { ok: true, registered: Boolean(user.registered_at) };
   }
 
   /** Local development only (refused in production by config validation). */

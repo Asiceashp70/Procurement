@@ -5,6 +5,7 @@ interface ConfigureInput {
   dbUrl?: string;
   lineLoginId?: string;
   lineLoginSecret?: string;
+  liffId?: string;
   existing: Env;
 }
 // plain Node scripts (they run on the server without a build step)
@@ -52,6 +53,17 @@ describe('configure-env (server install)', () => {
     const prod = configure({ mode: 'production', origin: 'https://zenhere.example.co.th/', existing });
     expect(prod).toMatchObject({ NODE_ENV: 'production', DEV_LOGIN_ENABLED: 'false', APP_ORIGIN: 'https://zenhere.example.co.th', SUPER_ADMIN_LINE_USER_IDS: 'Uaaaabbbbccccddddeeeeffff00001111' });
     expect(prod.FILE_ENCRYPTION_KEY).toBe(test.FILE_ENCRYPTION_KEY);
+  });
+
+  it('LIFF ID: set, kept on re-run, cleared with none, validated', () => {
+    const line = { ...base, mode: 'production', origin: 'https://zenhere.example.co.th', lineLoginId: '1234567890', lineLoginSecret: 's3cret' };
+    const env = configure({ ...line, liffId: '1234567890-AbCdEfGh' });
+    expect(env.LIFF_ID).toBe('1234567890-AbCdEfGh');
+    const existing = parseEnv(render(env, 'production'));
+    expect(configure({ mode: 'production', origin: line.origin, existing }).LIFF_ID).toBe('1234567890-AbCdEfGh');
+    expect(configure({ mode: 'production', origin: line.origin, existing, liffId: 'none' }).LIFF_ID).toBe('');
+    expect(() => configure({ ...line, liffId: 'https://liff.line.me/1234567890-AbCdEfGh' })).toThrow(/liff-id/);
+    expect(() => configure({ ...base, mode: 'test', origin: 'http://192.168.1.10', liffId: '1234567890-AbCdEfGh' })).toThrow(/LINE Login channel/);
   });
 
   it('rejects a bad mode or origin', () => {

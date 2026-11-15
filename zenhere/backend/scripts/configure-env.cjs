@@ -1,7 +1,9 @@
 // Creates or updates backend/.env for a server install, keeping existing secrets.
 //
 //   node scripts/configure-env.cjs --mode test|production --origin <url> [--db-url <url>] [--line-login-id <id>]
-//                                  [--storage-dir <path>] [--out <path>]
+//                                  [--liff-id <id>] [--storage-dir <path>] [--out <path>]
+//
+// --liff-id none clears a LIFF ID set before.
 //
 // The LINE Login channel secret is read from the ZENHERE_LINE_LOGIN_SECRET environment
 // variable, never from the command line (which ends up in logs and process lists).
@@ -33,7 +35,7 @@ function parseEnv(text) {
   return env;
 }
 
-function configure({ mode, origin, dbUrl, lineLoginId, lineLoginSecret, storageDir, existing }) {
+function configure({ mode, origin, dbUrl, lineLoginId, lineLoginSecret, liffId, storageDir, existing }) {
   if (mode !== 'test' && mode !== 'production') throw new Error('--mode must be test or production');
   let url;
   try {
@@ -59,6 +61,7 @@ function configure({ mode, origin, dbUrl, lineLoginId, lineLoginSecret, storageD
     LINE_MESSAGING_CHANNEL_SECRET: e.LINE_MESSAGING_CHANNEL_SECRET || '',
     LINE_MESSAGING_ACCESS_TOKEN: e.LINE_MESSAGING_ACCESS_TOKEN || '',
     LINE_OA_BASIC_ID: e.LINE_OA_BASIC_ID || '',
+    LIFF_ID: liffId === 'none' ? '' : liffId || e.LIFF_ID || '',
     SUPER_ADMIN_LINE_USER_IDS: e.SUPER_ADMIN_LINE_USER_IDS || '',
     DEV_LOGIN_ENABLED: mode === 'test' ? 'true' : 'false',
     JOB_WORKER_ENABLED: 'true',
@@ -75,6 +78,8 @@ function configure({ mode, origin, dbUrl, lineLoginId, lineLoginSecret, storageD
   env.SUPER_ADMIN_LINE_USER_IDS = [...admins].join(',');
 
   if (!env.DATABASE_URL) throw new Error('--db-url is required the first time');
+  if (env.LIFF_ID && !/^\d+-[A-Za-z0-9]+$/.test(env.LIFF_ID)) throw new Error('--liff-id looks like 1234567890-AbCdEfGh (LINE Developers > LIFF tab)');
+  if (env.LIFF_ID && !env.LINE_LOGIN_CHANNEL_ID) throw new Error('LIFF needs the LINE Login channel that owns the LIFF app');
   if (mode === 'production') {
     if (url.protocol !== 'https:') throw new Error('production needs an https:// origin (LINE Login requires HTTPS)');
     if (!env.LINE_LOGIN_CHANNEL_ID || !env.LINE_LOGIN_CHANNEL_SECRET) throw new Error('production needs the LINE Login channel ID and secret');
@@ -102,6 +107,7 @@ function main() {
     dbUrl: args['db-url'],
     lineLoginId: args['line-login-id'],
     lineLoginSecret: process.env.ZENHERE_LINE_LOGIN_SECRET,
+    liffId: args['liff-id'],
     storageDir: args['storage-dir'],
     existing,
   });
@@ -109,6 +115,7 @@ function main() {
   writeFileSync(file, render(env, args.mode));
   console.log(`wrote ${file} (${args.mode} mode, ${env.APP_ORIGIN})`);
   console.log(`LINE Login: ${env.LINE_LOGIN_CHANNEL_ID ? `channel ${env.LINE_LOGIN_CHANNEL_ID}, callback ${env.API_BASE_URL}/auth/line/callback` : 'not configured'}`);
+  console.log(`LIFF: ${env.LIFF_ID ? `https://liff.line.me/${env.LIFF_ID} -> endpoint ${env.APP_ORIGIN}` : 'not configured'}`);
 }
 
 if (require.main === module) {

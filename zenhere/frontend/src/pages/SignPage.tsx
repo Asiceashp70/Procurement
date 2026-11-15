@@ -5,6 +5,7 @@ import { DrawPad } from '../components/SignatureEditor';
 import { api, ApiError, errorText } from '../lib/api';
 import { FIELD_LABEL, todayThai, type FieldSettings, type FieldType, type SignerStatus } from '../lib/documents';
 import type { PageInfo } from '../lib/pdf';
+import { closeLiffWindow, inLineApp } from '../lib/liff';
 import { thaiDateTime } from '../lib/thai';
 
 interface SignField {
@@ -135,6 +136,11 @@ export function SignPage() {
         <div style={{ fontSize: 48 }}>{done === 'signed' ? '✅' : '🚫'}</div>
         <h2>{done === 'signed' ? 'ลงนามเรียบร้อย' : 'ปฏิเสธการเซ็นแล้ว'}</h2>
         <p className="muted">{done === 'signed' ? 'เมื่อทุกคนเซ็นครบ ระบบจะแจ้งเตือนพร้อมลิงก์ไฟล์ฉบับสมบูรณ์' : 'ระบบแจ้งผู้ส่งเอกสารพร้อมเหตุผลแล้ว'}</p>
+        {inLineApp() && (
+          <button className="btn-primary" onClick={closeLiffWindow}>
+            ปิดหน้าต่าง กลับไปที่แชท
+          </button>
+        )}
         <Link className="btn" to={`/documents/${id}`}>
           ดูสถานะเอกสาร
         </Link>

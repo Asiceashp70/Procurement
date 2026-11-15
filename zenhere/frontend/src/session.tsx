@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { api, ApiError, type AuthConfig, type Me } from './lib/api';
+import { initLiff, liffLogin, openedFromLine } from './lib/liff';
 
 interface SessionValue {
   me: Me | null;
@@ -31,7 +32,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    Promise.all([api.get<AuthConfig>('/auth/config').then(setConfig), refresh()]).finally(() => setLoading(false));
+    (async () => {
+      try {
+        const cfg = await api.get<AuthConfig>('/auth/config');
+        setConfig(cfg);
+        // Opened from LINE: log in with the LINE identity without asking (LIFF)
+        if (cfg.liffId && openedFromLine() && (await initLiff(cfg.liffId))) await liffLogin();
+      } finally {
+        await refresh();
+      }
+    })().finally(() => setLoading(false));
   }, [refresh]);
 
   const logout = useCallback(async () => {

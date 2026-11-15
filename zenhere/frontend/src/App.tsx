@@ -20,6 +20,7 @@ import { SuperAdminPage } from './pages/SuperAdminPage';
 const EditorPage = lazy(() => import('./pages/EditorPage').then((m) => ({ default: m.EditorPage })));
 const DocumentViewPage = lazy(() => import('./pages/DocumentViewPage').then((m) => ({ default: m.DocumentViewPage })));
 const SignPage = lazy(() => import('./pages/SignPage').then((m) => ({ default: m.SignPage })));
+import { inLineApp } from './lib/liff';
 import { SessionProvider, useSession } from './session';
 
 export function App() {
@@ -110,9 +111,12 @@ function Shell({ children, wide }: { children: ReactNode; wide?: boolean }) {
               {me.linePictureUrl ? <img className="avatar" src={me.linePictureUrl} alt="" /> : <span className="avatar" />}
               <span className="small hide-sm">{me.nickname || me.firstName || me.lineDisplayName}</span>
             </Link>
-            <button className="btn-sm btn-ghost" onClick={() => logout().then(() => navigate('/login'))}>
-              ออก
-            </button>
+            {/* inside LINE the app logs in again by itself, so there is no point in logging out */}
+            {!inLineApp() && (
+              <button className="btn-sm btn-ghost" onClick={() => logout().then(() => navigate('/login'))}>
+                ออก
+              </button>
+            )}
           </>
         )}
       </header>

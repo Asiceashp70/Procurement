@@ -86,6 +86,7 @@ export interface AuthConfig {
   devLoginEnabled: boolean;
   oaAddFriendUrl: string | null;
   consentVersion: string;
+  liffId: string | null;
 }
 
 export interface ListItem {

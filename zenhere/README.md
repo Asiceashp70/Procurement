@@ -137,6 +137,17 @@ cd backend && SEARCH_BENCH=1 npx jest test/search.bench.spec.ts   # ความ
    - Webhook URL: `https://<โดเมน>/api/line/webhook` (เปิด Use webhook)
    - ใส่ Channel secret ใน `LINE_MESSAGING_CHANNEL_SECRET`, long-lived channel access token ใน `LINE_MESSAGING_ACCESS_TOKEN`, Basic ID ใน `LINE_OA_BASIC_ID`
 4. Super Admin คนแรก: login ด้วย LINE หนึ่งครั้ง ดู userId ในตาราง `users` แล้วใส่ใน `SUPER_ADMIN_LINE_USER_IDS` และ restart service
+5. **LIFF (เปิดระบบในแอป LINE โดยไม่ต้องกดเข้าสู่ระบบ)** ไม่บังคับ แต่แนะนำ
+   - LINE Login channel > แท็บ **LIFF** > **Add**
+     - Size: **Full**
+     - Endpoint URL: `https://<โดเมน>` (รากของเว็บ ไม่ต้องใส่ path)
+     - Scopes: ติ๊ก **openid** และ **profile**
+     - Add friend option (Bot link feature): **On (Aggressive)**
+   - ได้ **LIFF ID** (รูปแบบ `1234567890-AbCdEfGh`) ใส่ใน `LIFF_ID` หรือรันตัวติดตั้งซ้ำด้วย `-LiffId <LIFF ID>`
+   - เมื่อตั้งแล้ว ปุ่มในข้อความแจ้งเตือนและลิงก์เชิญเข้าบริษัทจะเป็น `https://liff.line.me/<LIFF ID>/...`
+     กดจากแชท LINE แล้วเปิดหน้านั้นในแอป LINE และเข้าสู่ระบบให้เลย เซ็นเสร็จมีปุ่มปิดหน้าต่างกลับไปที่แชท
+   - ถ้าเปิดลิงก์บนคอมพิวเตอร์ จะเปิดในเบราว์เซอร์และเข้าสู่ระบบด้วย LINE Login ตามปกติ
+   - server ต้องออกไปหา `api.line.me` ได้ (ใช้ตรวจ ID token)
 
 ## ใบรับรองดิจิทัลของบริษัท (ซีลเอกสาร)
 
@@ -164,6 +175,8 @@ build แล้วรันเป็น Windows service 2 ตัว (`zenhere-ap
    ```
 3. สคริปต์ถาม **LINE Login Channel ID และ Channel secret** (พิมพ์ตอนรัน ไม่เก็บใน repo) แล้วแสดง Callback URL
    ให้ไปใส่ใน LINE Developers Console > LINE Login channel > แท็บ LINE Login > Callback URL
+   **หลัง Cloudflare Tunnel** (ไม่ต้องเปิด port): `-PublicUrl https://<โดเมน> -HttpPort 8090` และใส่ `-LiffId <LIFF ID>` เพื่อเปิด LIFF
+   (ไม่ต้องใส่ซ้ำทุกครั้ง สคริปต์จำค่าเดิมไว้ ใส่ `-LiffId none` เพื่อปิด)
 4. เข้าสู่ระบบครั้งแรกแล้วตั้งตัวเองเป็น Super Admin: `powershell -ExecutionPolicy Bypass -File C:\zenhere\app\deploy\set-super-admin.ps1`
 
 | โฟลเดอร์ | เก็บอะไร |

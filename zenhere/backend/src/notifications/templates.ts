@@ -1,6 +1,6 @@
 import { thaiDateTime } from '../common/thai-time';
-import { config } from '../config/config';
 import { card, type CardInput } from './flex';
+import { appLink } from './links';
 
 type Payload = Record<string, unknown>;
 
@@ -14,10 +14,9 @@ export function buildMessages(type: string, p: Payload): unknown[] {
 
 /** The content of each message, also shown by the test LINE inbox when LINE is not connected. */
 export function buildCards(type: string, p: Payload): CardInput[] {
-  const app = config().APP_ORIGIN;
   const company = s(p.companyName);
-  const signUrl = `${app}/documents/${s(p.documentId)}/sign`;
-  const docUrl = `${app}/documents/${s(p.documentId)}`;
+  const signUrl = appLink(`/documents/${s(p.documentId)}/sign`);
+  const docUrl = appLink(`/documents/${s(p.documentId)}`);
   const docRows = (): [string, string][] => [
     ['เอกสาร', s(p.title)],
     ['ผู้ส่ง', s(p.senderName)],
@@ -27,7 +26,7 @@ export function buildCards(type: string, p: Payload): CardInput[] {
   switch (type) {
     // ------------------------------------------------------------ membership
     case 'membership.approved':
-      return [({ altText: `อนุมัติแล้ว: คุณเป็นสมาชิก ${company}`, title: 'อนุมัติการเข้าร่วมบริษัทแล้ว', color: '#06C755', rows: [['บริษัท', company]], note: 'จากนี้คุณจะได้รับแจ้งเตือนเมื่อมีเอกสารให้เซ็น', button: { label: 'เปิดระบบ', url: `${app}/` } })];
+      return [({ altText: `อนุมัติแล้ว: คุณเป็นสมาชิก ${company}`, title: 'อนุมัติการเข้าร่วมบริษัทแล้ว', color: '#06C755', rows: [['บริษัท', company]], note: 'จากนี้คุณจะได้รับแจ้งเตือนเมื่อมีเอกสารให้เซ็น', button: { label: 'เปิดระบบ', url: appLink('/') } })];
     case 'membership.rejected':
       return [
         ({
@@ -39,7 +38,7 @@ export function buildCards(type: string, p: Payload): CardInput[] {
             ['เหตุผล', s(p.reason)],
           ],
           note: 'ตรวจสอบข้อมูลแล้วส่งคำขอใหม่ได้ หรือติดต่อฝ่ายบุคคล',
-          button: { label: 'เปิดระบบ', url: `${app}/` },
+          button: { label: 'เปิดระบบ', url: appLink('/') },
         }),
       ];
 
