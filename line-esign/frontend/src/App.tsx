@@ -1,6 +1,10 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { CompanyAdminPage } from './pages/CompanyAdminPage';
+import { DocumentDetailPage } from './pages/DocumentDetailPage';
+import { DocumentsPage } from './pages/DocumentsPage';
+import { NewDocumentPage } from './pages/NewDocumentPage';
+import { VerifyPage } from './pages/VerifyPage';
 import { ConsentGate } from './pages/ConsentGate';
 import { HomePage } from './pages/HomePage';
 import { JoinPage } from './pages/JoinPage';
@@ -8,6 +12,10 @@ import { LoginPage } from './pages/LoginPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { SuperAdminPage } from './pages/SuperAdminPage';
+
+// pdf.js is large: load it only on the pages that render PDFs
+const EditorPage = lazy(() => import('./pages/EditorPage').then((m) => ({ default: m.EditorPage })));
+const SignPage = lazy(() => import('./pages/SignPage').then((m) => ({ default: m.SignPage })));
 import { SessionProvider, useSession } from './session';
 
 export function App() {
@@ -20,6 +28,12 @@ export function App() {
           <Route path="/" element={<RequireLogin><Shell><HomePage /></Shell></RequireLogin>} />
           <Route path="/join" element={<RequireLogin><Shell><JoinPage /></Shell></RequireLogin>} />
           <Route path="/join/:token" element={<RequireLogin><Shell><JoinPage /></Shell></RequireLogin>} />
+          <Route path="/documents" element={<RequireLogin><Shell><DocumentsPage /></Shell></RequireLogin>} />
+          <Route path="/documents/new" element={<RequireLogin><Shell><NewDocumentPage /></Shell></RequireLogin>} />
+          <Route path="/documents/:id" element={<RequireLogin><Shell><DocumentDetailPage /></Shell></RequireLogin>} />
+          <Route path="/documents/:id/edit" element={<RequireLogin><Shell wide><EditorPage /></Shell></RequireLogin>} />
+          <Route path="/documents/:id/sign" element={<RequireLogin><Shell><SignPage /></Shell></RequireLogin>} />
+          <Route path="/verify" element={<RequireLogin><Shell><VerifyPage /></Shell></RequireLogin>} />
           <Route path="/profile" element={<RequireLogin><Shell><ProfilePage /></Shell></RequireLogin>} />
           <Route path="/c/:companyId/admin" element={<RequireLogin><Shell wide><CompanyAdminPage /></Shell></RequireLogin>} />
           <Route path="/admin" element={<RequireLogin><Shell wide><SuperAdminPage /></Shell></RequireLogin>} />
@@ -71,6 +85,11 @@ function Shell({ children, wide }: { children: ReactNode; wide?: boolean }) {
         <Link to="/" className="brand">
           LINE e-Sign
         </Link>
+        {me?.registered && (
+          <Link to="/documents" className="small" style={{ fontWeight: 600 }}>
+            เอกสาร
+          </Link>
+        )}
         <span className="spacer" />
         {me && (
           <>
@@ -84,7 +103,9 @@ function Shell({ children, wide }: { children: ReactNode; wide?: boolean }) {
           </>
         )}
       </header>
-      <main className={wide ? 'page wide' : 'page'}>{children}</main>
+      <main className={wide ? 'page wide' : 'page'}>
+        <Suspense fallback={<div className="loading">กำลังโหลด...</div>}>{children}</Suspense>
+      </main>
     </>
   );
 }

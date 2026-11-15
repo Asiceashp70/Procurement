@@ -4,6 +4,10 @@ export class ApiError extends Error {
     message: string,
     public code?: string,
     public errors?: { field: string; message: string }[],
+    /** send-check problems (DOC-07) */
+    public problems?: string[],
+    /** field ids still empty when signing (SGN-10) */
+    public missing?: string[],
   ) {
     super(message);
   }
@@ -21,7 +25,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const data = text ? JSON.parse(text) : null;
   if (!res.ok) {
     const msg = Array.isArray(data?.message) ? data.message.join(', ') : (data?.message ?? `เกิดข้อผิดพลาด (${res.status})`);
-    throw new ApiError(res.status, msg, data?.code, data?.errors);
+    throw new ApiError(res.status, msg, data?.code, data?.errors, data?.problems, data?.missing);
   }
   return data as T;
 }

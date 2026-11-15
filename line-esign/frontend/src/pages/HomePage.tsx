@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
-import type { MyMembership } from '../lib/api';
+import { api, type MyMembership } from '../lib/api';
+import type { DocListItem } from '../lib/documents';
+import { DocCard } from './DocumentsPage';
 import { STATUS_LABEL, thaiDate } from '../lib/thai';
 import { getActiveCompany, setActiveCompany, useSession } from '../session';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export function HomePage() {
   const { me, config } = useSession();
@@ -53,8 +55,16 @@ export function HomePage() {
           <p className="muted small">
             {[current.employeeCode, current.departmentName, current.positionName].filter(Boolean).join(' · ')}
           </p>
-          <div className="alert alert-info small" style={{ marginBottom: 8 }}>
-            เอกสารที่ต้องเซ็นและเอกสารของฉันจะเปิดใช้ในเฟส 2
+          <TodoDocs companyId={current.companyId} />
+          <div className="row" style={{ marginBottom: 8 }}>
+            <Link className="btn" to="/documents">
+              เอกสารทั้งหมด
+            </Link>
+            {current.canCreateDocuments && (
+              <Link className="btn btn-primary" to="/documents/new">
+                + สร้างเอกสาร
+              </Link>
+            )}
           </div>
           {current.role === 'admin' && (
             <Link className="btn btn-block" to={`/c/${current.companyId}/admin`}>
@@ -102,6 +112,24 @@ function MembershipRow({ m }: { m: MyMembership }) {
           เหตุผล: {m.rejectReason} · <Link to="/join">ส่งคำขอใหม่</Link>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Documents waiting for my signature, right on the home page. */
+function TodoDocs({ companyId }: { companyId: string }) {
+  const [items, setItems] = useState<DocListItem[] | null>(null);
+  useEffect(() => {
+    api.get<{ items: DocListItem[] }>(`/documents?companyId=${companyId}&box=todo`).then((r) => setItems(r.items), () => setItems([]));
+  }, [companyId]);
+  if (!items) return null;
+  if (!items.length) return <p className="muted small">ไม่มีเอกสารรอคุณเซ็น</p>;
+  return (
+    <div style={{ marginBottom: 8 }}>
+      <h3>รอคุณเซ็น ({items.length})</h3>
+      {items.slice(0, 5).map((d) => (
+        <DocCard key={d.id} d={d} box="todo" />
+      ))}
     </div>
   );
 }

@@ -62,6 +62,7 @@ function Companies() {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<{ id?: string; name: string; taxId: string; address: string } | null>(null);
   const [appointFor, setAppointFor] = useState<CompanyRow | null>(null);
+  const [certFor, setCertFor] = useState<string | null>(null);
 
   const load = useCallback(() => {
     api.get<Overview>('/admin/overview').then(setOverview);
@@ -197,7 +198,11 @@ function Companies() {
             <button className="btn-sm btn-ghost" onClick={() => setAppointFor(c)}>
               + แต่งตั้ง
             </button>
+            <button className="btn-sm btn-ghost" onClick={() => setCertFor(certFor === c.id ? null : c.id)}>
+              🔐 ใบรับรองดิจิทัล
+            </button>
           </div>
+          {certFor === c.id && <Certificates companyId={c.id} />}
           {appointFor?.id === c.id && (
             <AppointAdmin
               onPick={(u) =>
@@ -287,6 +292,85 @@ function SystemLog() {
         </label>
       </div>
       <AuditTable data={data} page={page} setPage={setPage} showCompany />
+    </div>
+  );
+}
+
+interface Cert {
+  id: string;
+  subject: string;
+  issuer: string;
+  notBefore: string;
+  notAfter: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+/** ADM-11: one .p12/.pfx per company, stored encrypted and never downloadable. */
+function Certificates({ companyId }: { companyId: string }) {
+  const [rows, setRows] = useState<Cert[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const load = useCallback(() => api.get<Cert[]>(`/admin/companies/${companyId}/certificates`).then(setRows), [companyId]);
+  useEffect(() => {
+    load();
+  }, [load]);
+  const upload = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!file) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append('password', password);
+      fd.append('file', file);
+      const r = await api.post<{ subject: string; notAfter: string }>(`/admin/companies/${companyId}/certificates`, fd);
+      setMsg({ ok: true, text: `ติดตั้งแล้ว: ${r.subject} หมดอายุ ${thaiDate(r.notAfter)}` });
+      setPassword('');
+      setFile(null);
+      load();
+    } catch (err) {
+      setMsg({ ok: false, text: errorText(err) });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div style={{ marginTop: 10, padding: 12, background: '#fafafa', borderRadius: 10 }} className="small">
+      {rows.map((c) => (
+        <div key={c.id} className="list-item">
+          <div className="row between">
+            <strong>{c.subject}</strong>
+            {c.isActive ? <span className="badge badge-approved">ใช้งาน</span> : <span className="badge badge-suspended">เลิกใช้</span>}
+          </div>
+          <div className="muted">
+            ออกโดย {c.issuer} · ใช้ได้ถึง {thaiDate(c.notAfter)}
+          </div>
+          {c.isActive && (
+            <button className="btn-sm btn-ghost btn-danger" onClick={() => window.confirm('เลิกใช้ใบรับรองนี้? เอกสารที่เซ็นครบหลังจากนี้จะไม่ถูกซีล') && api.post(`/admin/certificates/${c.id}/deactivate`).then(load)}>
+              เลิกใช้
+            </button>
+          )}
+        </div>
+      ))}
+      {rows.length === 0 && <p className="muted">ยังไม่มีใบรับรอง</p>}
+      <form onSubmit={upload} style={{ marginTop: 8 }}>
+        <label className="field">
+          <span>ไฟล์ใบรับรอง (.p12 / .pfx)</span>
+          <input type="file" accept=".p12,.pfx,application/x-pkcs12" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+        </label>
+        <label className="field">
+          <span>รหัสผ่านใบรับรอง</span>
+          <input type="password" autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', minHeight: 44, padding: '8px 12px', border: '1px solid #cfcfd4', borderRadius: 10 }} />
+        </label>
+        {msg && <div className={`alert ${msg.ok ? 'alert-ok' : 'alert-error'}`}>{msg.text}</div>}
+        <button className="btn-primary btn-sm" disabled={!file || busy}>
+          {busy ? 'กำลังตรวจ...' : 'ติดตั้งใบรับรอง'}
+        </button>
+        <p className="muted" style={{ marginTop: 6 }}>ไฟล์และรหัสผ่านถูกเข้ารหัสเก็บไว้ และดาวน์โหลดคืนไม่ได้ ใบใหม่จะแทนใบเดิมทันที</p>
+      </form>
     </div>
   );
 }

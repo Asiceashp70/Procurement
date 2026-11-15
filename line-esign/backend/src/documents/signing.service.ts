@@ -42,7 +42,16 @@ export class SigningService {
       await this.access.logAdminView(user, a, 'signing_page', meta);
     } else {
       if (!signer.opened_at) await this.db.updateTable('document_signers').set({ opened_at: new Date() }).where('id', '=', signer.id).execute();
-      await this.events.log({ documentId: id, type: 'opened', actor: user, signerId: signer.id, meta });
+      // one "opened" entry per visit, not per page refresh
+      const recent = await this.db
+        .selectFrom('document_events')
+        .select('id')
+        .where('document_id', '=', id)
+        .where('signer_id', '=', signer.id)
+        .where('type', '=', 'opened')
+        .where('created_at', '>', new Date(Date.now() - 5 * 60_000))
+        .executeTakeFirst();
+      if (!recent) await this.events.log({ documentId: id, type: 'opened', actor: user, signerId: signer.id, meta });
     }
     const fields = await this.db
       .selectFrom('fields')
@@ -69,6 +78,7 @@ export class SigningService {
     const creator = await this.db.selectFrom('users').select(['first_name', 'last_name', 'line_display_name']).where('id', '=', doc.created_by).executeTakeFirstOrThrow();
     return {
       id: doc.id,
+      companyId: doc.company_id,
       title: doc.title,
       status: doc.status,
       dueAt: doc.due_at,

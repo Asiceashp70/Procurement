@@ -3,8 +3,8 @@
 ระบบเซ็นเอกสารออนไลน์ผ่าน LINE ตาม PRD (Nov 15, 2026) สร้างตาม stack ที่ PRD กำหนด:
 **NestJS + PostgreSQL 16 + React/Vite** บน Windows Server เครื่องเดียว ไม่ใช้ Docker และ Redis
 
-> สถานะ: **เฟส 1 (ราฐาน) เสร็จแล้ว** — LINE Login, ลงทะเบียน, ลายเซ็น + ไดคัท, หลังบ้านบริษัทและพนักงาน, แจ้งผลอนุมัติทาง LINE
-> เฟส 2 (เอกสารและการเซ็น) และเฟส 3 (ค้นหา + OCR) ยังไม่ได้ทำ
+> สถานะ: **เฟส 1 (ราฐาน) และเฟส 2 (เอกสาร + การเซ็น) เสร็จแล้ว**
+> เฟส 3 (ค้นหาเนื้อหา + OCR) และเฟส 4 (นำร่อง) ยังไม่ได้ทำ
 
 ```
 line-esign/
@@ -12,6 +12,29 @@ line-esign/
   frontend/   React + Vite + TypeScript (mobile-first)
   deploy/     Caddyfile, สคริปต์ติดตั้ง Windows service (NSSM), สคริปต์สำรองข้อมูล
 ```
+
+## สิ่งที่ทำแล้วในเฟส 2
+
+| รหัส | ทำแล้ว | หมายเหตุ |
+|---|---|---|
+| DOC-01 | ✅ | PDF/JPG/PNG ไม่เกิน 50 MB หรือ 200 หน้า รูปถูกแปลงเป็น PDF หน้า A4 ปฏิเสธ PDF ติดรหัสผ่านหรือไฟล์เสียพร้อมเหตุผล |
+| DOC-02..07 | ✅ | ชื่อเรื่องเริ่มต้นจากชื่อไฟล์, แสดงหน้าด้วย pdf.js (render เฉพาะหน้าที่เห็น), ซูม, ช่อง 6 ชนิด ลาก ย่อขยาย คัดลอก ลบ (เมาส์และนิ้ว), ตำแหน่งเก็บเป็นสัดส่วน 0–1, เลือกผู้เซ็นค้นด้วยชื่อ รหัส แผนก, โหมดพร้อมกัน/เรียงลำดับ (ลำดับเดียวกันเซ็นพร้อมกันได้), บันทึกร่างอัตโนมัติ, ตรวจก่อนส่ง |
+| DOC-08 | ✅ บางส่วน | คิด SHA-256 ต้นฉบับ และล็อกไฟล์/กรอบหลังส่ง ส่วน**ดึงข้อความรายหน้า**ย้ายไปเฟส 3 (คอลัมน์รอไว้แล้วใน `document_pages`) |
+| DOC-09, 10 | ✅ | หน้ารายละเอียด: สถานะรายคน ใครเปิดดู/เซ็น/ยังไม่แอด OA, timeline, เตือนซ้ำ, ยกเลิก, ดาวน์โหลด, Admin เปลี่ยนตัวผู้เซ็น (ย้ายกรอบ แจ้ง LINE บันทึก log และแสดงในหน้าใบรับรอง) |
+| SGN-01..06, 10 | ✅ | หน้าเซ็นบนมือถือ เลื่อนไปช่องของตัวเอง ตัวนับ "เหลือ N จุด", ใช้ลายเซ็นที่บันทึกหรือเซ็นสดเฉพาะครั้งนี้, วันที่เติมเอง, ติ๊กยินยอมแล้วยืนยัน, ปฏิเสธพร้อมเหตุผล, server ตรวจสิทธิ์และลำดับทุกครั้ง (403 + บันทึก), `document_events` แก้/ลบไม่ได้ |
+| SGN-07, 09 | ✅ | ประทับทุกช่องลง PDF ตามตำแหน่ง (รองรับหน้าที่หมุน 90/180/270 และ CropBox), แนบหน้าใบรับรอง (ชื่อ ตำแหน่ง เวลา IP LINE userId SHA-256 ต้นฉบับ), ส่งลิงก์ให้ทุกคน (ต้อง login) |
+| SGN-08 | ✅ | หน้า `/verify` อัปโหลดไฟล์แล้วเทียบ SHA-256 แก้ 1 byte ขึ้น "ไม่ตรงกับต้นฉบับ" |
+| SGN-11 | ✅ | ซีล **PAdES baseline-B** (`ETSI.CAdES.detached` + signing-certificate-v2) ด้วยใบรับรอง .p12 ของบริษัท, ใส่เวลาจาก TSA (RFC 3161) ถ้าตั้ง `TSA_URL`, ไม่มีใบรับรองหรือหมดอายุ → ปิดเอกสารได้แต่ไม่ซีล และแจ้ง Admin |
+| SIG-07 | ✅ | ตอนเซ็น คัดลอกรูปลายเซ็นไปเก็บกับเอกสาร แก้ลายเซ็นหลักภายหลังไม่กระทบ |
+| ADM-08 | ✅ | dashboard เพิ่มเอกสารตามสถานะ เลยกำหนด ผู้ค้างเซ็นมากที่สุด และสถานะใบรับรอง |
+| ADM-10, 11 | ✅ | คลังตราประทับ (ไดคัทแบบเดียวกับลายเซ็น, กำหนดคนใช้ได้, ใช้ตราทุกครั้งลง audit log), ใบรับรอง .p12 เข้ารหัสเก็บ ดาวน์โหลดคืนไม่ได้ แจ้งก่อนหมดอายุ 30 และ 7 วัน |
+| แจ้งเตือน LINE | ✅ | ส่งเอกสาร, ถึงลำดับ, ใกล้ครบกำหนด (ตั้งได้ต่อบริษัท), เลยกำหนด (ทุก 24 ชม. สูงสุด 3 ครั้ง), เตือนซ้ำด้วยมือ (1 ครั้ง/ชม./คน), มีคนเซ็น (ปิดได้), ปฏิเสธ, เซ็นครบ, ยกเลิก, เปลี่ยนผู้เซ็น, ใบรับรองใกล้หมดอายุ, ผู้เซ็นถูกระงับ |
+
+**ทดสอบแล้วอย่างไร:** ไฟล์ที่ซีลผ่าน `pdfsig` (poppler) ว่า "Signature is Valid" และแก้ 1 byte แล้วไม่ผ่าน, token ของ TSA ผ่าน `openssl ts -verify` (ทดสอบกับ TSA จำลองที่สร้างด้วย `openssl ts -reply` เพราะเครื่องพัฒนาออกเน็ตไปหา TSA จริงไม่ได้), และเปิดผ่านเบราว์เซอร์จริงครบทั้งเส้นทาง (สร้าง → วางกรอบ → ส่ง → เซ็นบนมือถือ → ซีล → ตรวจไฟล์)
+
+### ภาษาไทยใน PDF
+
+pdf-lib วาดข้อความไทยผิด (วรรณยุกต์ลอย สระทับกัน) ตามที่ PRD เตือนไว้ ระบบนี้ใช้ fontkit จัดรูปข้อความตามตาราง GSUB/GPOS ของฟอนต์ Sarabun แล้ววาดทีละ glyph ตามตำแหน่งที่คำนวณได้ (`backend/src/documents/pdf/thai-text.ts`) ตัดบรรทัดภาษาไทยด้วย `Intl.Segmenter` ฟอนต์ Sarabun (OFL) อยู่ใน `backend/assets/fonts`
 
 ## สิ่งที่ทำแล้วในเฟส 1
 
@@ -29,6 +52,17 @@ line-esign/
 | NFR | ✅ | ตรวจ Origin ทุก request ที่เปลี่ยนข้อมูล, rate limit, ไฟล์เข้ารหัส AES-256-GCM, audit log แก้/ลบไม่ได้ (trigger), health check, เวลาเก็บเป็น UTC แสดงเป็นเวลาไทย พ.ศ. |
 
 ### สิ่งที่ผมตีความเอง (ควรยืนยันกับเจ้าของ PRD)
+
+เฟส 2:
+
+6. **เลยกำหนดแล้วยังเซ็นได้** (คำถามที่ยังเปิดใน PRD) เอกสารยังอยู่ในสถานะรอเซ็นพร้อมป้าย "เลยกำหนด"
+7. **ส่งได้เมื่อผู้เซ็นทุกคนมีกรอบอย่างน้อย 1 กรอบ** และกรอบตราประทับต้องเป็นตราที่ผู้กรอกมีสิทธิ์ใช้
+8. **ปฏิเสธได้เฉพาะเมื่อถึงลำดับของตัวเอง** และใช้ลายเซ็นเดียวกันกับทุกช่องลายเซ็นในการเซ็นครั้งนั้น
+9. **ยกเลิกเอกสารได้ทั้งผู้สร้างและ Company Admin** (Admin ยกเลิกเอกสารคนอื่นถูกบันทึกใน audit log) ลบร่าง = ซ่อน ไม่ลบไฟล์
+10. **TSA ล่ม → ซีลโดยไม่มีเวลา TSA**, ซีลล้มเหลวทั้งหมด → ปิดเอกสารแบบไม่ซีลและแจ้ง Admin (ไม่ทิ้งเอกสารค้าง)
+11. ใบรับรองต้องเป็น **กุญแจ RSA** (ใบรับรองนิติบุคคลของ CA ไทยส่วนใหญ่เป็น RSA) ซีลเป็นระดับ **PAdES-B-B/B-T** ยังไม่ฝังข้อมูล OCSP/CRL สำหรับตรวจย้อนหลังระยะยาว (B-LT)
+
+เฟส 1:
 
 1. **ช่วงห้ามส่ง 21:00–08:00** ใช้กับข้อความอัตโนมัติ (เตือนใกล้ครบกำหนด เลยกำหนด ใบรับรองใกล้หมดอายุ) ส่วนข้อความที่ตอบสนองการกระทำของคน เช่นผลอนุมัติสมาชิก ส่งทันที เพราะ REG-06 กำหนด "ภายใน 1 นาที"
 2. **แต่งตั้ง/ถอด Company Admin ได้เฉพาะ Super Admin** (ADM-03) Company Admin อนุมัติ ระงับ และแก้ข้อมูลพนักงานได้ แต่เปลี่ยนบทบาทไม่ได้
@@ -63,7 +97,7 @@ npm run dev                   # http://localhost:5173  (proxy /api ไปที�
 ### ทดสอบ
 
 ```bash
-cd backend && npm test        # unit + e2e 21 เคส กับ PostgreSQL จริง (สร้างฐาน esign_test ใหม่ทุกครั้ง)
+cd backend && npm test        # 45 เคส: unit, PDF/ซีล (ต้องมี openssl และ pdfsig), e2e กับ PostgreSQL จริง (สร้างฐาน esign_test_N ใหม่ทุกครั้ง)
 cd frontend && npm test       # อัลกอริทึมไดคัทลายเซ็น 8 เคส
 ```
 
@@ -78,6 +112,12 @@ cd frontend && npm test       # อัลกอริทึมไดคัทล
    - Webhook URL: `https://<โดเมน>/api/line/webhook` (เปิด Use webhook)
    - ใส่ Channel secret ใน `LINE_MESSAGING_CHANNEL_SECRET`, long-lived channel access token ใน `LINE_MESSAGING_ACCESS_TOKEN`, Basic ID ใน `LINE_OA_BASIC_ID`
 4. Super Admin คนแรก: login ด้วย LINE หนึ่งครั้ง ดู userId ในตาราง `users` แล้วใส่ใน `SUPER_ADMIN_LINE_USER_IDS` และ restart service
+
+## ใบรับรองดิจิทัลของบริษัท (ซีลเอกสาร)
+
+1. ซื้อใบรับรองนิติบุคคลสำหรับลงนามเอกสารจาก CA (ไฟล์ .p12/.pfx กุญแจ RSA) ถ้าต้องการให้ Adobe Reader ขึ้นว่าเชื่อถือได้เลย ให้เลือก CA ที่อยู่ในรายการ Adobe AATL
+2. Super Admin เข้า "หลังบ้าน Super Admin" → บริษัท → 🔐 ใบรับรองดิจิทัล → อัปโหลดไฟล์พร้อมรหัสผ่าน ระบบตรวจรหัสผ่านและวันหมดอายุก่อนบันทึก
+3. ถ้า CA มีบริการ TSA ให้ใส่ URL ใน `TSA_URL` (และเปิด firewall ให้ server ออกไปหา host นั้นได้)
 
 ## ติดตั้งบน Windows Server
 
@@ -108,10 +148,18 @@ cd frontend && npm test       # อัลกอริทึมไดคัทล
 | `GET /admin/overview` · `GET/POST /admin/companies` · `PATCH /admin/companies/:id` | Super Admin: บริษัท |
 | `POST /admin/companies/:id/admins` · `DELETE /admin/companies/:id/admins/:userId` · `GET /admin/users` | แต่งตั้ง/ถอด Company Admin |
 | `GET /admin/audit` · `GET /health` · `POST /line/webhook` | log ระบบ, health check, webhook |
+| `POST /documents` · `GET /documents?companyId=&box=todo\|waiting\|done\|drafts\|company` | อัปโหลดและรายการเอกสาร |
+| `GET/PATCH/DELETE /documents/:id` · `PUT /documents/:id/layout` · `POST /documents/:id/send` | รายละเอียด แก้ร่าง วางกรอบและผู้เซ็น ส่ง |
+| `GET /documents/:id/file?v=source\|final\|original&download=1` | ไฟล์ (ตรวจสิทธิ์ทุกครั้ง) |
+| `GET /documents/:id/signing` · `POST /documents/:id/sign` · `POST /documents/:id/decline` | หน้าเซ็น เซ็น ปฏิเสธ |
+| `POST /documents/:id/remind` · `POST /documents/:id/void` · `POST /documents/:id/signers/:signerId/replace` | เตือนซ้ำ ยกเลิก เปลี่ยนผู้เซ็น |
+| `GET /companies/:id/signer-candidates` · `GET/POST/PATCH /companies/:id/stamps` | ผู้เซ็นที่เลือกได้, ตราประทับ |
+| `GET/POST /admin/companies/:id/certificates` · `POST /admin/certificates/:id/deactivate` | ใบรับรองดิจิทัล |
+| `POST /verify` | ตรวจไฟล์ด้วย SHA-256 |
 
-## ต่อไป: เฟส 2 (เอกสาร + การเซ็น)
+## ต่อไป: เฟส 3 (ค้นหา + OCR)
 
-ตาราง `documents`, `document_pages`, `fields`, `document_signers`, `document_events`, `company_stamps`, `company_certificates`
-แล้วต่อยอดจากของที่มีอยู่: คิวงาน (`JobsService`), การแจ้งเตือน (`NotificationsService` + `templates.ts`), ที่เก็บไฟล์เข้ารหัส (`StorageService`), audit log
-
-จุดที่ต้องระวังเป็นพิเศษ: วางข้อความไทยใน PDF ให้สระและวรรณยุกต์ถูกตำแหน่ง (ต้องใช้ text shaping เช่น harfbuzzjs หรือ fontkit layout ไม่ใช่ `drawText` ตรง ๆ ของ pdf-lib) และซีล PAdES ด้วย `@signpdf` + TSA
+- ดึงข้อความรายหน้าตอนอัปโหลด (pdf.js ฝั่ง server) แปลงอักษรไทยเพี้ยน (PUA) แล้วเก็บใน `document_pages.text_normalized` พร้อม index `pg_trgm`
+- OCR worker (Python + FastAPI + OpenThai2.0-OCR-Text บน CPU) สำหรับหน้าที่มีข้อความน้อยกว่า 20 ตัวอักษรและไฟล์รูป ใช้คิว `jobs` ที่มีอยู่แล้ว
+- หน้าค้นหา (ของฉัน / หลังบ้าน) พร้อมตัวกรอง ผลค้นบอกหน้าและไฮไลต์คำ
+- ทดสอบความเร็วค้นหาในเอกสาร 100,000 หน้า (SRC-09)

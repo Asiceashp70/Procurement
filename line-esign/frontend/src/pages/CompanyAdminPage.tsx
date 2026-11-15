@@ -2,12 +2,17 @@ import QRCode from 'qrcode';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { AuditTable, type AuditPage } from '../components/AuditTable';
+import { UploadCutout, type SignatureResult } from '../components/SignatureEditor';
+import type { DocListItem } from '../lib/documents';
+import { DocCard } from './DocumentsPage';
 import { api, errorText, type ListItem, type MembershipStatus } from '../lib/api';
 import { bangkokDayStart, fullName, STATUS_LABEL, thaiDateTime } from '../lib/thai';
 
 const TABS = [
   ['dashboard', 'ภาพรวม'],
+  ['documents', 'เอกสาร'],
   ['members', 'พนักงาน'],
+  ['stamps', 'ตราประทับ'],
   ['lists', 'แผนก/ตำแหน่ง'],
   ['invite', 'ลิงก์เชิญ'],
   ['import', 'นำเข้ารายชื่อ'],
@@ -38,6 +43,8 @@ export function CompanyAdminPage() {
         ))}
       </nav>
       {tab === 'dashboard' && <Dashboard companyId={companyId!} onName={setName} go={go} />}
+      {tab === 'documents' && <CompanyDocuments companyId={companyId!} status={params.get('status') ?? ''} overdue={params.get('overdue') === 'true'} />}
+      {tab === 'stamps' && <Stamps companyId={companyId!} />}
       {tab === 'members' && <Members companyId={companyId!} status={params.get('status') ?? 'pending'} notFriend={params.get('notFriend') === 'true'} />}
       {tab === 'lists' && (
         <div className="grid2">
@@ -58,6 +65,9 @@ interface DashboardData {
   company: { name: string; status: string };
   members: Record<MembershipStatus, number>;
   approvedNotOaFriend: number;
+  documents: { pending: number; completed: number; declined: number; voided: number; overdue: number };
+  topPendingSigners: { userId: string; name: string; isOaFriend: boolean; count: number }[];
+  certificate: { subject: string; notAfter: string } | null;
 }
 
 function Dashboard({ companyId, onName, go }: { companyId: string; onName: (n: string) => void; go: (t: Tab, extra?: Record<string, string>) => void }) {
@@ -74,22 +84,238 @@ function Dashboard({ companyId, onName, go }: { companyId: string; onName: (n: s
   }, [companyId, onName]);
   if (error) return <div className="alert alert-error">{error}</div>;
   if (!d) return <div className="loading">กำลังโหลด...</div>;
-  const stat = (num: number, label: string, onClick: () => void) => (
-    <button className="stat" onClick={onClick}>
-      <span className="num">{num}</span>
+  const stat = (num: number, label: string, onClick: () => void, warn = false) => (
+    <button className="stat" onClick={onClick} style={warn && num > 0 ? { borderColor: 'var(--red)' } : undefined}>
+      <span className="num" style={warn && num > 0 ? { color: 'var(--red)' } : undefined}>
+        {num}
+      </span>
       <span className="label">{label}</span>
     </button>
   );
+  const daysLeft = d.certificate ? Math.ceil((new Date(d.certificate.notAfter).getTime() - Date.now()) / 86400_000) : null;
   return (
     <>
+      <h2>เอกสาร</h2>
+      <div className="stats">
+        {stat(d.documents.pending, 'รอเซ็น', () => go('documents', { status: 'pending' }))}
+        {stat(d.documents.overdue, 'เลยกำหนด', () => go('documents', { overdue: 'true' }), true)}
+        {stat(d.documents.completed, 'เซ็นครบ', () => go('documents', { status: 'completed' }))}
+        {stat(d.documents.declined, 'ถูกปฏิเสธ', () => go('documents', { status: 'declined' }))}
+      </div>
+      <h2>พนักงาน</h2>
       <div className="stats">
         {stat(d.members.pending, 'รออนุมัติ', () => go('members', { status: 'pending' }))}
         {stat(d.members.approved, 'พนักงานที่อนุมัติแล้ว', () => go('members', { status: 'approved' }))}
-        {stat(d.approvedNotOaFriend, 'ยังไม่แอด LINE OA', () => go('members', { status: 'approved', notFriend: 'true' }))}
+        {stat(d.approvedNotOaFriend, 'ยังไม่แอด LINE OA', () => go('members', { status: 'approved', notFriend: 'true' }), true)}
         {stat(d.members.suspended, 'ถูกระงับ', () => go('members', { status: 'suspended' }))}
       </div>
-      <div className="alert alert-info small">สถิติเอกสาร (ตามสถานะ เลยกำหนด ผู้ที่ค้างเซ็นมากที่สุด) จะเพิ่มในเฟส 2</div>
+      <div className="grid2">
+        <div className="card">
+          <h3>ค้างเซ็นมากที่สุด</h3>
+          {d.topPendingSigners.length === 0 && <p className="muted small">ไม่มี</p>}
+          {d.topPendingSigners.map((p) => (
+            <div key={p.userId} className="list-item row between small">
+              <span>
+                {p.name} {!p.isOaFriend && <span style={{ color: 'var(--red)' }}>· ยังไม่แอด OA</span>}
+              </span>
+              <strong>{p.count}</strong>
+            </div>
+          ))}
+        </div>
+        <div className="card small">
+          <h3>ใบรับรองดิจิทัลของบริษัท</h3>
+          {d.certificate ? (
+            <>
+              <div>{d.certificate.subject}</div>
+              <div className={daysLeft !== null && daysLeft <= 30 ? '' : 'muted'} style={daysLeft !== null && daysLeft <= 30 ? { color: 'var(--red)' } : undefined}>
+                หมดอายุ {thaiDateTime(d.certificate.notAfter)} (อีก {daysLeft} วัน)
+              </div>
+            </>
+          ) : (
+            <div className="alert alert-warn">ยังไม่มีใบรับรอง เอกสารที่เซ็นครบจะไม่ถูกซีลดิจิทัล ติดต่อ Super Admin</div>
+          )}
+        </div>
+      </div>
     </>
+  );
+}
+
+// --------------------------------------------------------------------------- documents (SRC-02 basic list)
+
+function CompanyDocuments({ companyId, status, overdue }: { companyId: string; status: string; overdue: boolean }) {
+  const [, setParams] = useSearchParams();
+  const [q, setQ] = useState('');
+  const [data, setData] = useState<{ items: DocListItem[] } | null>(null);
+  useEffect(() => {
+    const p = new URLSearchParams({ companyId, box: 'company' });
+    if (status) p.set('status', status);
+    if (overdue) p.set('overdue', 'true');
+    if (q) p.set('q', q);
+    const t = setTimeout(() => api.get<{ items: DocListItem[] }>(`/documents?${p}`).then(setData), 200);
+    return () => clearTimeout(t);
+  }, [companyId, status, overdue, q]);
+  return (
+    <div>
+      <div className="chips">
+        {[
+          ['', 'ทั้งหมด'],
+          ['pending', 'รอเซ็น'],
+          ['completed', 'เซ็นครบ'],
+          ['declined', 'ถูกปฏิเสธ'],
+          ['voided', 'ยกเลิก'],
+        ].map(([k, label]) => (
+          <button key={k} className={status === k && !overdue ? 'active' : ''} onClick={() => setParams({ tab: 'documents', ...(k ? { status: k } : {}) })}>
+            {label}
+          </button>
+        ))}
+        <button className={overdue ? 'active' : ''} onClick={() => setParams({ tab: 'documents', overdue: 'true' })}>
+          เลยกำหนด
+        </button>
+      </div>
+      <input type="search" placeholder="ค้นหาชื่อเอกสาร" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 12 }} />
+      {!data && <div className="loading">กำลังโหลด...</div>}
+      {data?.items.length === 0 && <p className="muted center">ไม่มีเอกสาร</p>}
+      {data?.items.map((d) => (
+        <DocCard key={d.id} d={d} />
+      ))}
+      <p className="muted small">การเปิดเอกสารของคนอื่นจากหน้านี้ถูกบันทึกใน log</p>
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------------- ADM-10
+
+interface StampRow {
+  id: string;
+  name: string;
+  isActive: boolean;
+  users: { userId: string; firstName: string | null; lastName: string | null }[];
+}
+
+function Stamps({ companyId }: { companyId: string }) {
+  const [rows, setRows] = useState<StampRow[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState('');
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [editing, setEditing] = useState<StampRow | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const load = useCallback(() => api.get<StampRow[]>(`/companies/${companyId}/stamps`).then(setRows), [companyId]);
+  useEffect(() => {
+    load();
+    api.get<Member[]>(`/companies/${companyId}/members?status=approved`).then(setMembers);
+  }, [companyId, load]);
+
+  const create = async (r: SignatureResult) => {
+    if (!name.trim()) return setError('กรุณาตั้งชื่อตรา');
+    setSaving(true);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append('name', name);
+      fd.append('userIds', JSON.stringify([...picked]));
+      fd.append('file', r.blob, 'stamp.png');
+      await api.post(`/companies/${companyId}/stamps`, fd);
+      setAdding(false);
+      setName('');
+      setPicked(new Set());
+      load();
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+  const saveUsers = async () => {
+    if (!editing) return;
+    await api.patch(`/companies/${companyId}/stamps/${editing.id}`, { userIds: [...picked] });
+    setEditing(null);
+    load();
+  };
+  const memberPicker = (
+    <div style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 10, padding: 8, marginBottom: 12 }}>
+      {members.map((m) => (
+        <label key={m.userId} className="checkbox small" style={{ padding: '4px 0' }}>
+          <input
+            type="checkbox"
+            checked={picked.has(m.userId)}
+            onChange={(e) => {
+              const n = new Set(picked);
+              if (e.target.checked) n.add(m.userId);
+              else n.delete(m.userId);
+              setPicked(n);
+            }}
+          />
+          <span>
+            {fullName(m)} <span className="muted">{m.positionName ?? ''}</span>
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="stack">
+      {error && <div className="alert alert-error">{error}</div>}
+      {!adding && (
+        <button className="btn-primary" onClick={() => (setAdding(true), setPicked(new Set()))}>
+          + เพิ่มตราประทับ
+        </button>
+      )}
+      {adding && (
+        <div className="card">
+          <h2>เพิ่มตราประทับ</h2>
+          <label className="field">
+            <span>ชื่อตรา</span>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="เช่น ตราบริษัท (แดง)" />
+          </label>
+          <div className="field">
+            <span style={{ fontWeight: 600 }}>ใครใช้ตรานี้ได้</span>
+            {memberPicker}
+          </div>
+          <UploadCutout onSave={create} saving={saving} hint="ประทับตราบนกระดาษขาวแล้วถ่ายรูปหรือสแกน ระบบไดคัทพื้นหลังออกด้วยวิธีเดียวกับลายเซ็น เลือกสี 'ตามจริง' เพื่อคงสีตรา" />
+          <button className="btn-ghost" onClick={() => setAdding(false)}>
+            ยกเลิก
+          </button>
+        </div>
+      )}
+      {rows.map((st) => (
+        <div key={st.id} className="card">
+          <div className="row between">
+            <div className="row">
+              <img className="sig-thumb" src={`/api/companies/${companyId}/stamps/${st.id}/image`} alt="" />
+              <div>
+                <strong style={{ opacity: st.isActive ? 1 : 0.5 }}>{st.name}</strong>
+                <div className="muted small">ใช้ได้: {st.users.length ? st.users.map((u) => [u.firstName, u.lastName].join(' ')).join(', ') : 'ยังไม่มีใคร'}</div>
+              </div>
+            </div>
+            <div className="row">
+              <button className="btn-sm" onClick={() => (setEditing(st), setPicked(new Set(st.users.map((u) => u.userId))))}>
+                สิทธิ์
+              </button>
+              <button className="btn-sm" onClick={() => api.patch(`/companies/${companyId}/stamps/${st.id}`, { isActive: !st.isActive }).then(load)}>
+                {st.isActive ? 'ปิดใช้' : 'เปิดใช้'}
+              </button>
+            </div>
+          </div>
+          {editing?.id === st.id && (
+            <div style={{ marginTop: 10 }}>
+              {memberPicker}
+              <div className="row">
+                <button className="btn-primary btn-sm" onClick={saveUsers}>
+                  บันทึกสิทธิ์
+                </button>
+                <button className="btn-sm" onClick={() => setEditing(null)}>
+                  ยกเลิก
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+      <p className="muted small">การใช้ตราทุกครั้งถูกบันทึกใน log ผู้ดูแล</p>
+    </div>
   );
 }
 

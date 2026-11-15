@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { z } from 'zod';
@@ -19,7 +19,11 @@ export class StampsController {
   constructor(private readonly stamps: StampsService) {}
 
   @Get()
-  list(@CurrentUser() user: User, @Param('companyId', ParseUUIDPipe) companyId: string) {
+  list(@CurrentUser() user: User, @Param('companyId', ParseUUIDPipe) companyId: string, @Query('forUserId') forUserId?: string) {
+    if (forUserId) {
+      if (!/^[0-9a-f-]{36}$/i.test(forUserId)) throw new BadRequestException('forUserId ไม่ถูกต้อง');
+      return this.stamps.permittedFor(user, companyId, forUserId);
+    }
     return this.stamps.list(user, companyId);
   }
 

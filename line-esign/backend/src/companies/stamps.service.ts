@@ -19,6 +19,21 @@ export class StampsService {
     private readonly audit: AuditService,
   ) {}
 
+  /** Names of the active stamps a given person may use; for document creators picking a stamp field. */
+  async permittedFor(user: User, companyId: string, forUserId: string) {
+    const { membership } = await this.access.requireMember(user, companyId);
+    if (!user.is_super_admin && !membership?.can_create_documents && membership?.role !== 'admin') throw new ForbiddenException();
+    return this.db
+      .selectFrom('company_stamps as st')
+      .innerJoin('company_stamp_users as su', 'su.stamp_id', 'st.id')
+      .select(['st.id', 'st.name'])
+      .where('st.company_id', '=', companyId)
+      .where('st.is_active', '=', true)
+      .where('su.user_id', '=', forUserId)
+      .orderBy('st.name')
+      .execute();
+  }
+
   async list(user: User, companyId: string) {
     const { membership } = await this.access.requireMember(user, companyId);
     const isAdmin = user.is_super_admin || membership?.role === 'admin';

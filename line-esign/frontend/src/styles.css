@@ -47,7 +47,7 @@ p { margin: 0 0 12px; }
 .card.flat { border: none; }
 .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .row.between { justify-content: space-between; }
-.row > input, .row > select { flex: 1; min-width: 0; }
+.row > input[type='text'], .row > input[type='search'], .row > select { flex: 1; min-width: 0; }
 .stack > * + * { margin-top: 12px; }
 .grid2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
 @media (min-width: 640px) { .grid2 { grid-template-columns: 1fr 1fr; } }
@@ -154,3 +154,43 @@ dialog::backdrop { background: rgba(0,0,0,0.35); }
   .app-header, .no-print { display: none !important; }
   .page { max-width: none; }
 }
+
+/* ---------------- phase 2: documents */
+.pdf-page { position: relative; margin: 0 auto; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.15); }
+.pdf-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.pdf-overlay { position: absolute; inset: 0; }
+.pdf-page-no { position: absolute; right: 6px; bottom: 4px; font-size: 0.7rem; color: #999; pointer-events: none; }
+.pdf-scroller { background: #e9eaed; padding: 12px; border-radius: var(--radius); }
+
+.field-box {
+  position: absolute; box-sizing: border-box; border: 2px solid var(--c, #1a5fb4); background: rgba(26,95,180,0.08); background: color-mix(in srgb, var(--c, #1a5fb4) 12%, transparent);
+  border-radius: 4px; font-size: 11px; line-height: 1.2; color: var(--c, #1a5fb4); overflow: hidden; user-select: none; touch-action: none;
+  display: flex; align-items: center; justify-content: center; text-align: center; padding: 1px;
+}
+.field-box.selected { outline: 2px solid #111; outline-offset: 1px; z-index: 2; }
+.field-box .handle { position: absolute; right: -1px; bottom: -1px; width: 16px; height: 16px; background: var(--c, #1a5fb4); border-radius: 3px 0 3px 0; cursor: nwse-resize; }
+.field-box.other { border-style: dashed; border-color: #b9b9be; background: rgba(0,0,0,0.03); color: #9a9aa0; pointer-events: none; }
+.field-box.mine { cursor: pointer; animation: pulse 2s ease-in-out infinite; overflow: visible; }
+/* small boxes (checkbox, date) still get a finger-sized tap area */
+.field-box.mine::after { content: ''; position: absolute; inset: -12px; }
+.field-box .fc { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.field-box.mine.filled { animation: none; background: rgba(6,199,85,0.06); border-color: var(--green); }
+.field-box.missing { border-color: var(--red) !important; background: rgba(217,48,37,0.12) !important; }
+.field-box img { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; }
+@keyframes pulse { 50% { background: color-mix(in srgb, var(--c, #1a5fb4) 24%, transparent); } }
+
+.palette { display: flex; gap: 6px; flex-wrap: wrap; }
+.palette button { min-height: 38px; font-weight: 500; }
+.palette button.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+.editor { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 960px) { .editor { grid-template-columns: 300px 1fr; } .editor aside { position: sticky; top: 64px; align-self: start; max-height: calc(100vh - 80px); overflow-y: auto; } }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
+.sticky-bottom { position: sticky; bottom: 0; z-index: 5; background: var(--card); border-top: 1px solid var(--line); padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); margin: 0 -16px; }
+.sticky-top { position: sticky; top: 53px; z-index: 5; background: var(--bg); padding: 8px 0; }
+.timeline { list-style: none; padding: 0; margin: 0; }
+.timeline li { padding: 8px 0 8px 16px; border-left: 2px solid var(--line); position: relative; font-size: 0.9rem; }
+.timeline li::before { content: ''; position: absolute; left: -5px; top: 14px; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
+.modal { background: var(--card); width: min(560px, 100%); border-radius: 16px 16px 0 0; padding: 16px; max-height: 92vh; overflow-y: auto; }
+@media (min-width: 640px) { .modal-backdrop { align-items: center; } .modal { border-radius: 16px; } }
+.hash { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.75rem; word-break: break-all; }

@@ -30,7 +30,7 @@ export function SignatureEditor({ onSave, saving }: { onSave: (r: SignatureResul
 
 // --------------------------------------------------------------------------- draw (SIG-01)
 
-function DrawPad({ onSave, saving }: { onSave: (r: SignatureResult) => void; saving?: boolean }) {
+export function DrawPad({ onSave, saving }: { onSave: (r: SignatureResult) => void; saving?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const padRef = useRef<SignaturePad | null>(null);
@@ -142,7 +142,7 @@ function DrawPad({ onSave, saving }: { onSave: (r: SignatureResult) => void; sav
 
 // --------------------------------------------------------------------------- upload + cutout (SIG-02..04)
 
-function UploadCutout({ onSave, saving }: { onSave: (r: SignatureResult) => void; saving?: boolean }) {
+export function UploadCutout({ onSave, saving, hint }: { onSave: (r: SignatureResult) => void; saving?: boolean; hint?: string }) {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -188,7 +188,7 @@ function UploadCutout({ onSave, saving }: { onSave: (r: SignatureResult) => void
 
   return (
     <div className="stack">
-      <p className="muted small">เซ็นบนกระดาษขาวด้วยปากกาสีเข้ม ถ่ายให้เห็นลายเซ็นชัด ระบบจะไดคัทพื้นหลังออกให้เอง</p>
+      <p className="muted small">{hint ?? 'เซ็นบนกระดาษขาวด้วยปากกาสีเข้ม ถ่ายให้เห็นลายเซ็นชัด ระบบจะไดคัทพื้นหลังออกให้เอง'}</p>
       <div className="row">
         <label className="btn">
           📁 เลือกรูป

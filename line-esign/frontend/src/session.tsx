@@ -64,3 +64,11 @@ export function setActiveCompany(id: string) {
     /* private mode: selection just isn't remembered */
   }
 }
+
+/** The approved membership the user is working in (falls back to the first one). */
+export function useActiveMembership() {
+  const { me } = useSession();
+  const approved = (me?.memberships ?? []).filter((m) => m.status === 'approved' && m.companyStatus === 'active');
+  const id = getActiveCompany();
+  return approved.find((m) => m.companyId === id) ?? approved[0] ?? null;
+}
