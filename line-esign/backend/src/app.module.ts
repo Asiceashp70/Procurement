@@ -28,6 +28,7 @@ import { CompaniesService } from './companies/companies.service';
 import { CompanyAccessService } from './companies/company-access.service';
 import { ImportsService } from './companies/imports.service';
 import { DatabaseModule } from './db/database';
+import { DevController } from './dev/dev.controller';
 import { HealthController } from './health.controller';
 import { JobsService } from './jobs/jobs.service';
 import { LinePushService } from './notifications/line-push.service';
@@ -42,7 +43,7 @@ import { UsersService } from './users/users.service';
       throttlers: [{ name: 'default', ttl: 60_000, limit: 300 }],
       skipIf: () => config().NODE_ENV === 'test',
     })],
-  controllers: [HealthController, AuthController, MeController, CompaniesController, StampsController, AdminController, DocumentsController, SearchController, LineWebhookController],
+  controllers: [HealthController, AuthController, MeController, CompaniesController, StampsController, AdminController, DocumentsController, SearchController, LineWebhookController, DevController],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: AuthGuard },

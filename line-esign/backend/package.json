@@ -10,7 +10,8 @@
     "migrate": "node dist/db/migrate-cli.js",
     "migrate:dev": "nest build && node dist/db/migrate-cli.js",
     "test": "jest --runInBand",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "seed:demo": "node dist/dev/seed.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.0",

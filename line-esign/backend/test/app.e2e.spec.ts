@@ -277,3 +277,26 @@ describe('audit log and webhook', () => {
     expect((await agent.get('/api/me')).body.isOaFriend).toBe(false);
   });
 });
+
+describe('test mode without LINE', () => {
+  it('lists demo accounts and shows the LINE messages with in-app links', async () => {
+    const accounts = (await request(app.getHttpServer()).get('/api/dev/accounts').expect(200)).body;
+    expect(accounts.length).toBeGreaterThan(0);
+    // someone who was approved earlier in this file has an approval message
+    const approved = await db.selectFrom('notifications').select('user_id').where('type', '=', 'membership.approved').executeTakeFirstOrThrow();
+    const u = await db.selectFrom('users').select('line_user_id').where('id', '=', approved.user_id).executeTakeFirstOrThrow();
+    const agent = await login(u.line_user_id);
+    const inbox = (await agent.get('/api/dev/line-inbox').expect(200)).body;
+    const card = inbox.find((m: { type: string }) => m.type === 'membership.approved').cards[0];
+    expect(card.title).toBe('อนุมัติการเข้าร่วมบริษัทแล้ว');
+    expect(card.button.path).toBe('/');
+    // only Super Admins can run the timed reminders
+    await agent.post('/api/dev/run-reminders').set('origin', ORIGIN).expect(403);
+  });
+
+  it('accepts a phone on the local network (same host) but not other sites', async () => {
+    const agent = await login();
+    await agent.post('/api/me/consent').set('host', '192.168.1.20:5173').set('origin', 'http://192.168.1.20:5173').send({ version: '2026-11-v1' }).expect(201);
+    await agent.post('/api/me/consent').set('host', '192.168.1.20:5173').set('origin', 'http://evil.example').send({ version: '2026-11-v1' }).expect(403);
+  });
+});

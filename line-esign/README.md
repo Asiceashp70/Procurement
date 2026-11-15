@@ -6,6 +6,8 @@
 > สถานะ: **เฟส 1 (ราฐาน), เฟส 2 (เอกสาร + การเซ็น) และเฟส 3 (ค้นหา + OCR) เสร็จแล้ว**
 > เหลือเฟส 4 (นำร่องกับบริษัทจริง) และการทดสอบ OCR กับโมเดล OpenThai จริง
 
+**ทดสอบระบบโดยยังไม่เชื่อม LINE: ดู [TESTING.md](TESTING.md)** (Windows ดับเบิลคลิก `start-test.bat`)
+
 ```
 line-esign/
   backend/    NestJS API  (Kysely + pg, คิวงานใน PostgreSQL)

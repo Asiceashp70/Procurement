@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, errorText } from '../lib/api';
+import { devAccounts, newLineUserId, type DevAccount } from '../lib/dev';
 import { useSession } from '../session';
 
 const ERRORS: Record<string, string> = {
@@ -19,14 +20,18 @@ export function LoginPage() {
   const [devId, setDevId] = useState('U00000000000000000000000000000001');
   const [devName, setDevName] = useState('ผู้ทดสอบ');
   const [devError, setDevError] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<DevAccount[]>([]);
+  useEffect(() => {
+    if (config?.devLoginEnabled) devAccounts().then(setAccounts, () => undefined);
+  }, [config?.devLoginEnabled]);
 
   if (loading) return <div className="loading">กำลังโหลด...</div>;
   if (me) return <Navigate to={me.registered ? next : '/register'} replace />;
 
-  const devLogin = async () => {
+  const devLogin = async (lineUserId = devId.trim(), displayName = devName) => {
     setDevError(null);
     try {
-      await api.post('/auth/dev/login', { lineUserId: devId.trim(), displayName: devName });
+      await api.post('/auth/dev/login', { lineUserId, displayName });
       const m = await refresh();
       navigate(m?.registered ? next : '/register', { replace: true });
     } catch (err) {
@@ -53,19 +58,32 @@ export function LoginPage() {
       </div>
       {config?.devLoginEnabled && (
         <div className="card">
-          <h3>เข้าสู่ระบบแบบทดสอบ (เฉพาะเครื่องพัฒนา)</h3>
-          <label className="field">
-            <span>LINE userId</span>
-            <input type="text" value={devId} onChange={(e) => setDevId(e.target.value)} />
-          </label>
-          <label className="field">
-            <span>ชื่อที่แสดง</span>
-            <input type="text" value={devName} onChange={(e) => setDevName(e.target.value)} />
-          </label>
+          <h3>ทดสอบระบบ (ยังไม่เชื่อม LINE)</h3>
+          <p className="muted small">เลือกบัญชีทดลองเพื่อเข้าใช้แทนการ login ด้วย LINE สลับคนได้ตลอดจากเมนูมุมขวาบน</p>
           {devError && <div className="alert alert-error">{devError}</div>}
-          <button className="btn-block" onClick={devLogin}>
-            เข้าสู่ระบบทดสอบ
+          {accounts.map((a) => (
+            <button key={a.lineUserId} className="btn-block" style={{ justifyContent: 'space-between', marginBottom: 8, fontWeight: 500 }} onClick={() => devLogin(a.lineUserId, a.name)}>
+              <span>{a.name}</span>
+              <span className="muted small">{a.roles ?? (a.isSuperAdmin ? 'Super Admin' : a.registered ? '' : 'ยังไม่ลงทะเบียน')}</span>
+            </button>
+          ))}
+          <button className="btn-block btn-primary" onClick={() => devLogin(newLineUserId(), 'ผู้ใช้ใหม่')}>
+            + ผู้ใช้ใหม่ (ลองลงทะเบียนครั้งแรก)
           </button>
+          <details style={{ marginTop: 12 }}>
+            <summary className="small">ระบุ LINE userId เอง</summary>
+            <label className="field" style={{ marginTop: 8 }}>
+              <span>LINE userId</span>
+              <input type="text" value={devId} onChange={(e) => setDevId(e.target.value)} />
+            </label>
+            <label className="field">
+              <span>ชื่อที่แสดง</span>
+              <input type="text" value={devName} onChange={(e) => setDevName(e.target.value)} />
+            </label>
+            <button className="btn-block" onClick={() => devLogin()}>
+              เข้าสู่ระบบทดสอบ
+            </button>
+          </details>
         </div>
       )}
     </main>

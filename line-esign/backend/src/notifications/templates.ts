@@ -1,6 +1,6 @@
 import { thaiDateTime } from '../common/thai-time';
 import { config } from '../config/config';
-import { card } from './flex';
+import { card, type CardInput } from './flex';
 
 type Payload = Record<string, unknown>;
 
@@ -9,6 +9,11 @@ const due = (p: Payload) => (p.dueAt ? thaiDateTime(new Date(String(p.dueAt))) :
 
 /** Builds the LINE Flex message for each notification type. */
 export function buildMessages(type: string, p: Payload): unknown[] {
+  return buildCards(type, p).map(card);
+}
+
+/** The content of each message, also shown by the test LINE inbox when LINE is not connected. */
+export function buildCards(type: string, p: Payload): CardInput[] {
   const app = config().APP_ORIGIN;
   const company = s(p.companyName);
   const signUrl = `${app}/documents/${s(p.documentId)}/sign`;
@@ -22,10 +27,10 @@ export function buildMessages(type: string, p: Payload): unknown[] {
   switch (type) {
     // ------------------------------------------------------------ membership
     case 'membership.approved':
-      return [card({ altText: `อนุมัติแล้ว: คุณเป็นสมาชิก ${company}`, title: 'อนุมัติการเข้าร่วมบริษัทแล้ว', color: '#06C755', rows: [['บริษัท', company]], note: 'จากนี้คุณจะได้รับแจ้งเตือนเอกสารที่ต้องเซ็นทาง LINE', button: { label: 'เปิดระบบ', url: `${app}/` } })];
+      return [({ altText: `อนุมัติแล้ว: คุณเป็นสมาชิก ${company}`, title: 'อนุมัติการเข้าร่วมบริษัทแล้ว', color: '#06C755', rows: [['บริษัท', company]], note: 'จากนี้คุณจะได้รับแจ้งเตือนเอกสารที่ต้องเซ็นทาง LINE', button: { label: 'เปิดระบบ', url: `${app}/` } })];
     case 'membership.rejected':
       return [
-        card({
+        ({
           altText: `คำขอเข้าร่วม ${company} ไม่ได้รับอนุมัติ`,
           title: 'คำขอเข้าร่วมบริษัทไม่ได้รับอนุมัติ',
           color: '#D93025',
@@ -40,16 +45,16 @@ export function buildMessages(type: string, p: Payload): unknown[] {
 
     // ------------------------------------------------------------ to signers
     case 'doc.sign_request':
-      return [card({ altText: `มีเอกสารรอคุณเซ็น: ${s(p.title)}`, title: 'มีเอกสารรอคุณเซ็น', color: '#06C755', rows: docRows(), button: { label: 'เปิดเพื่อเซ็น', url: signUrl } })];
+      return [({ altText: `มีเอกสารรอคุณเซ็น: ${s(p.title)}`, title: 'มีเอกสารรอคุณเซ็น', color: '#06C755', rows: docRows(), button: { label: 'เปิดเพื่อเซ็น', url: signUrl } })];
     case 'doc.reminder':
-      return [card({ altText: `เตือน: ${s(p.title)} รอคุณเซ็น`, title: 'เตือน: เอกสารรอคุณเซ็น', color: '#B26A00', rows: docRows(), button: { label: 'เปิดเพื่อเซ็น', url: signUrl } })];
+      return [({ altText: `เตือน: ${s(p.title)} รอคุณเซ็น`, title: 'เตือน: เอกสารรอคุณเซ็น', color: '#B26A00', rows: docRows(), button: { label: 'เปิดเพื่อเซ็น', url: signUrl } })];
     case 'doc.due_soon':
-      return [card({ altText: `ใกล้ครบกำหนด: ${s(p.title)}`, title: 'เอกสารใกล้ครบกำหนดเซ็น', color: '#B26A00', rows: docRows(), button: { label: 'เปิดเพื่อเซ็น', url: signUrl } })];
+      return [({ altText: `ใกล้ครบกำหนด: ${s(p.title)}`, title: 'เอกสารใกล้ครบกำหนดเซ็น', color: '#B26A00', rows: docRows(), button: { label: 'เปิดเพื่อเซ็น', url: signUrl } })];
     case 'doc.overdue':
-      return [card({ altText: `เลยกำหนดแล้ว: ${s(p.title)}`, title: 'เอกสารเลยกำหนดเซ็นแล้ว', color: '#D93025', rows: docRows(), note: 'ยังเซ็นได้ กรุณาเซ็นโดยเร็ว', button: { label: 'เปิดเพื่อเซ็น', url: signUrl } })];
+      return [({ altText: `เลยกำหนดแล้ว: ${s(p.title)}`, title: 'เอกสารเลยกำหนดเซ็นแล้ว', color: '#D93025', rows: docRows(), note: 'ยังเซ็นได้ กรุณาเซ็นโดยเร็ว', button: { label: 'เปิดเพื่อเซ็น', url: signUrl } })];
     case 'doc.voided':
       return [
-        card({
+        ({
           altText: `ยกเลิกเอกสาร: ${s(p.title)}`,
           title: 'เอกสารถูกยกเลิก',
           color: '#6B6B70',
@@ -63,7 +68,7 @@ export function buildMessages(type: string, p: Payload): unknown[] {
       ];
     case 'doc.signer_assigned':
       return [
-        card({
+        ({
           altText: `คุณถูกกำหนดเป็นผู้เซ็น: ${s(p.title)}`,
           title: 'คุณถูกกำหนดเป็นผู้เซ็นแทน',
           rows: [...docRows(), ['เหตุผล', s(p.reason)]],
@@ -72,7 +77,7 @@ export function buildMessages(type: string, p: Payload): unknown[] {
       ];
     case 'doc.signer_removed':
       return [
-        card({
+        ({
           altText: `คุณไม่ต้องเซ็น ${s(p.title)} แล้ว`,
           title: 'เปลี่ยนผู้เซ็นแล้ว',
           color: '#6B6B70',
@@ -86,7 +91,7 @@ export function buildMessages(type: string, p: Payload): unknown[] {
       ];
     case 'doc.completed':
       return [
-        card({
+        ({
           altText: `เซ็นครบแล้ว: ${s(p.title)}`,
           title: 'เอกสารเซ็นครบแล้ว',
           color: '#06C755',
@@ -102,7 +107,7 @@ export function buildMessages(type: string, p: Payload): unknown[] {
     // ------------------------------------------------------------ to the creator
     case 'doc.signed':
       return [
-        card({
+        ({
           altText: `${s(p.signerName)} เซ็นแล้ว: ${s(p.title)}`,
           title: `${s(p.signerName)} เซ็นแล้ว`,
           rows: [
@@ -114,7 +119,7 @@ export function buildMessages(type: string, p: Payload): unknown[] {
       ];
     case 'doc.declined':
       return [
-        card({
+        ({
           altText: `${s(p.signerName)} ปฏิเสธการเซ็น: ${s(p.title)}`,
           title: 'เอกสารถูกปฏิเสธ',
           color: '#D93025',
@@ -127,10 +132,10 @@ export function buildMessages(type: string, p: Payload): unknown[] {
         }),
       ];
     case 'doc.overdue_creator':
-      return [card({ altText: `เลยกำหนด: ${s(p.title)} ยังเซ็นไม่ครบ`, title: 'เอกสารเลยกำหนดแต่ยังเซ็นไม่ครบ', color: '#D93025', rows: [['เอกสาร', s(p.title)], ['ยังไม่เซ็น', s(p.pendingNames)]], button: { label: 'ดูเอกสาร', url: docUrl } })];
+      return [({ altText: `เลยกำหนด: ${s(p.title)} ยังเซ็นไม่ครบ`, title: 'เอกสารเลยกำหนดแต่ยังเซ็นไม่ครบ', color: '#D93025', rows: [['เอกสาร', s(p.title)], ['ยังไม่เซ็น', s(p.pendingNames)]], button: { label: 'ดูเอกสาร', url: docUrl } })];
     case 'doc.signer_replaced':
       return [
-        card({
+        ({
           altText: `เปลี่ยนผู้เซ็น: ${s(p.title)}`,
           title: 'Admin เปลี่ยนตัวผู้เซ็น',
           rows: [
@@ -144,7 +149,7 @@ export function buildMessages(type: string, p: Payload): unknown[] {
       ];
     case 'signer.suspended':
       return [
-        card({
+        ({
           altText: `ผู้เซ็นถูกระงับ: ${s(p.title)}`,
           title: 'ผู้เซ็นถูกระงับบัญชี',
           color: '#B26A00',
@@ -160,7 +165,7 @@ export function buildMessages(type: string, p: Payload): unknown[] {
     // ------------------------------------------------------------ to admins
     case 'cert.expiring':
       return [
-        card({
+        ({
           altText: `ใบรับรองดิจิทัลของ ${company} ใกล้หมดอายุ`,
           title: `ใบรับรองดิจิทัลจะหมดอายุใน ${s(p.daysLeft)} วัน`,
           color: '#B26A00',
@@ -174,7 +179,7 @@ export function buildMessages(type: string, p: Payload): unknown[] {
       ];
     case 'cert.missing':
       return [
-        card({
+        ({
           altText: `เอกสาร ${s(p.title)} ปิดแล้วแต่ไม่ได้ซีล`,
           title: 'เอกสารปิดแล้วแต่ไม่ได้ซีลดิจิทัล',
           color: '#D93025',

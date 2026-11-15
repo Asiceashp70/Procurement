@@ -5,7 +5,9 @@ import { DocumentDetailPage } from './pages/DocumentDetailPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { NewDocumentPage } from './pages/NewDocumentPage';
 import { VerifyPage } from './pages/VerifyPage';
+import { DevBar } from './components/DevBar';
 import { ConsentGate } from './pages/ConsentGate';
+import { DevLinePage } from './pages/DevLinePage';
 import { HomePage } from './pages/HomePage';
 import { JoinPage } from './pages/JoinPage';
 import { LoginPage } from './pages/LoginPage';
@@ -37,6 +39,7 @@ export function App() {
           <Route path="/documents/:id/sign" element={<RequireLogin><Shell><SignPage /></Shell></RequireLogin>} />
           <Route path="/documents/:id/view" element={<RequireLogin><Shell><DocumentViewPage /></Shell></RequireLogin>} />
           <Route path="/search" element={<RequireLogin><Shell><SearchPage /></Shell></RequireLogin>} />
+          <Route path="/dev/line" element={<RequireLogin><Shell><DevLinePage /></Shell></RequireLogin>} />
           <Route path="/verify" element={<RequireLogin><Shell><VerifyPage /></Shell></RequireLogin>} />
           <Route path="/profile" element={<RequireLogin><Shell><ProfilePage /></Shell></RequireLogin>} />
           <Route path="/c/:companyId/admin" element={<RequireLogin><Shell wide><CompanyAdminPage /></Shell></RequireLogin>} />
@@ -100,11 +103,12 @@ function Shell({ children, wide }: { children: ReactNode; wide?: boolean }) {
           </>
         )}
         <span className="spacer" />
+        <DevBar />
         {me && (
           <>
             <Link to="/profile" className="row" style={{ textDecoration: 'none', color: 'inherit' }} aria-label="ข้อมูลของฉัน">
               {me.linePictureUrl ? <img className="avatar" src={me.linePictureUrl} alt="" /> : <span className="avatar" />}
-              <span className="small">{me.nickname || me.firstName || me.lineDisplayName}</span>
+              <span className="small hide-sm">{me.nickname || me.firstName || me.lineDisplayName}</span>
             </Link>
             <button className="btn-sm btn-ghost" onClick={() => logout().then(() => navigate('/login'))}>
               ออก

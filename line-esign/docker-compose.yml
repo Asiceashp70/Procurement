@@ -1,0 +1,22 @@
+# PostgreSQL for local testing only (production runs PostgreSQL directly on Windows Server).
+# Port 5436 so it does not clash with the other project's database on 5435.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: esign-postgres
+    environment:
+      POSTGRES_USER: esign
+      POSTGRES_PASSWORD: esign_dev
+      POSTGRES_DB: esign
+    ports:
+      - "5436:5432"
+    volumes:
+      - esign-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U esign -d esign"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  esign-pgdata:
