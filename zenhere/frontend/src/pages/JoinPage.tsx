@@ -63,7 +63,7 @@ export function JoinPage() {
         <div style={{ fontSize: 40 }}>{done.status === 'approved' ? '✅' : '⏳'}</div>
         <h2>{done.status === 'approved' ? `เข้าร่วม ${done.companyName} แล้ว` : 'ส่งคำขอแล้ว'}</h2>
         <p className="muted">
-          {done.status === 'approved' ? 'ข้อมูลของคุณตรงกับรายชื่อพนักงานที่บริษัทนำเข้าไว้ จึงอนุมัติให้ทันที' : 'รอผู้ดูแลบริษัทอนุมัติ ระบบจะแจ้งผลทาง LINE'}
+          {done.status === 'approved' ? 'ข้อมูลของคุณตรงกับรายชื่อพนักงานที่บริษัทนำเข้าไว้ จึงอนุมัติให้ทันที' : 'รอผู้ดูแลบริษัทอนุมัติ ระบบจะแจ้งผลให้ทราบ'}
         </p>
         <Link className="btn btn-primary" to="/">
           กลับหน้าแรก

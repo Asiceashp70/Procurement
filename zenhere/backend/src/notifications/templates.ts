@@ -27,7 +27,7 @@ export function buildCards(type: string, p: Payload): CardInput[] {
   switch (type) {
     // ------------------------------------------------------------ membership
     case 'membership.approved':
-      return [({ altText: `อนุมัติแล้ว: คุณเป็นสมาชิก ${company}`, title: 'อนุมัติการเข้าร่วมบริษัทแล้ว', color: '#06C755', rows: [['บริษัท', company]], note: 'จากนี้คุณจะได้รับแจ้งเตือนเอกสารที่ต้องเซ็นทาง LINE', button: { label: 'เปิดระบบ', url: `${app}/` } })];
+      return [({ altText: `อนุมัติแล้ว: คุณเป็นสมาชิก ${company}`, title: 'อนุมัติการเข้าร่วมบริษัทแล้ว', color: '#06C755', rows: [['บริษัท', company]], note: 'จากนี้คุณจะได้รับแจ้งเตือนเมื่อมีเอกสารให้เซ็น', button: { label: 'เปิดระบบ', url: `${app}/` } })];
     case 'membership.rejected':
       return [
         ({

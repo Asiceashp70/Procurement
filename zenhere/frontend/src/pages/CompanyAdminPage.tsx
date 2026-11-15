@@ -106,7 +106,7 @@ function Dashboard({ companyId, onName, go }: { companyId: string; onName: (n: s
       <div className="stats">
         {stat(d.members.pending, 'รออนุมัติ', () => go('members', { status: 'pending' }))}
         {stat(d.members.approved, 'พนักงานที่อนุมัติแล้ว', () => go('members', { status: 'approved' }))}
-        {stat(d.approvedNotOaFriend, 'ยังไม่แอด LINE OA', () => go('members', { status: 'approved', notFriend: 'true' }), true)}
+        {stat(d.approvedNotOaFriend, 'ยังไม่เปิดรับแจ้งเตือน', () => go('members', { status: 'approved', notFriend: 'true' }), true)}
         {stat(d.members.suspended, 'ถูกระงับ', () => go('members', { status: 'suspended' }))}
       </div>
       <div className="grid2">
@@ -116,7 +116,7 @@ function Dashboard({ companyId, onName, go }: { companyId: string; onName: (n: s
           {d.topPendingSigners.map((p) => (
             <div key={p.userId} className="list-item row between small">
               <span>
-                {p.name} {!p.isOaFriend && <span style={{ color: 'var(--red)' }}>· ยังไม่แอด OA</span>}
+                {p.name} {!p.isOaFriend && <span style={{ color: 'var(--red)' }}>· ยังไม่เปิดรับแจ้งเตือน</span>}
               </span>
               <strong>{p.count}</strong>
             </div>
@@ -397,7 +397,7 @@ function Members({ companyId, status, notFriend }: { companyId: string; status: 
           </button>
         ))}
         <button className={notFriend ? 'active' : ''} onClick={() => setParams({ tab: 'members', status, ...(notFriend ? {} : { notFriend: 'true' }) })}>
-          ยังไม่แอด OA
+          ยังไม่เปิดรับแจ้งเตือน
         </button>
       </div>
       <input type="search" placeholder="ค้นหาชื่อ รหัสพนักงาน เบอร์ แผนก" value={q} onChange={(e) => setQ(e.target.value)} style={{ marginBottom: 12 }} />
@@ -422,7 +422,7 @@ function Members({ companyId, status, notFriend }: { companyId: string; status: 
             </div>
           </div>
           <div className="muted small" style={{ marginTop: 6 }}>
-            {m.phone} · {m.email} · {m.isOaFriend ? 'แอด OA แล้ว' : '⚠️ ยังไม่แอด OA'} · ขอเมื่อ {thaiDateTime(m.requestedAt)}
+            {m.phone} · {m.email} · {m.isOaFriend ? 'รับแจ้งเตือนแล้ว' : '⚠️ ยังไม่เปิดรับแจ้งเตือน'} · ขอเมื่อ {thaiDateTime(m.requestedAt)}
             {m.joinMethod === 'import' && ' · อนุมัติอัตโนมัติจากรายชื่อนำเข้า'}
           </div>
           {m.rejectReason && <div className="small">เหตุผลที่ปฏิเสธ: {m.rejectReason}</div>}

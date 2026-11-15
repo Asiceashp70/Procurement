@@ -1,12 +1,12 @@
 # ZenHere
 
-ระบบเซ็นเอกสารออนไลน์ผ่าน LINE ตาม PRD (Nov 15, 2026) สร้างตาม stack ที่ PRD กำหนด:
+ระบบเซ็นเอกสารออนไลน์บนมือถือ ตาม PRD (Nov 15, 2026) สร้างตาม stack ที่ PRD กำหนด:
 **NestJS + PostgreSQL 16 + React/Vite** บน Windows Server เครื่องเดียว ไม่ใช้ Docker และ Redis
 
 > สถานะ: **เฟส 1 (ราฐาน), เฟส 2 (เอกสาร + การเซ็น) และเฟส 3 (ค้นหา + OCR) เสร็จแล้ว**
 > เหลือเฟส 4 (นำร่องกับบริษัทจริง) และการทดสอบ OCR กับโมเดล OpenThai จริง
 
-**ทดสอบระบบโดยยังไม่เชื่อม LINE: ดู [TESTING.md](TESTING.md)** (Windows ดับเบิลคลิก `start-test.bat`)
+**ทดสอบระบบ: ดู [TESTING.md](TESTING.md)** (Windows ดับเบิลคลิก `start-test.bat`)
 
 ```
 zenhere/

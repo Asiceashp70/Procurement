@@ -10,7 +10,7 @@ import { LineLoginService } from './line-login.service';
 import { clearSession, issueSession, OAUTH_COOKIE, safeNextPath, setOAuthCookie, takeOAuthCookie } from './session';
 
 const devLoginSchema = z.object({
-  lineUserId: z.string().regex(/^U[0-9a-f]{32}$/, 'LINE userId ต้องขึ้นต้นด้วย U ตามด้วยเลขฐานสิบหก 32 ตัว'),
+  lineUserId: z.string().regex(/^U[0-9a-f]{32}$/, 'รหัสบัญชีต้องขึ้นต้นด้วย U ตามด้วยเลขฐานสิบหก 32 ตัว'),
   displayName: z.string().max(100).optional(),
 });
 

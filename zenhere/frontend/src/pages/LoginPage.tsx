@@ -6,9 +6,9 @@ import { useSession } from '../session';
 
 const ERRORS: Record<string, string> = {
   state_mismatch: 'การเข้าสู่ระบบหมดเวลาหรือไม่ถูกต้อง กรุณาลองใหม่',
-  line_login_failed: 'เข้าสู่ระบบด้วย LINE ไม่สำเร็จ กรุณาลองใหม่',
+  line_login_failed: 'เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่',
   access_denied: 'คุณยกเลิกการเข้าสู่ระบบ',
-  line_not_configured: 'ระบบยังไม่ได้ตั้งค่า LINE Login',
+  line_not_configured: 'ระบบยังไม่ได้ตั้งค่าการเข้าสู่ระบบ',
 };
 
 export function LoginPage() {
@@ -44,22 +44,22 @@ export function LoginPage() {
       <div className="center" style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 48 }}>✍️</div>
         <h1>ZenHere</h1>
-        <p className="muted">เซ็นเอกสารของบริษัทบนมือถือ ยืนยันตัวตนด้วยบัญชี LINE</p>
+        <p className="muted">เซ็นเอกสารของบริษัทบนมือถือ ได้ทุกที่ ทุกเวลา</p>
       </div>
       {error && <div className="alert alert-error">{ERRORS[error] ?? `เข้าสู่ระบบไม่สำเร็จ (${error})`}</div>}
       <div className="card">
         <a className="btn btn-line btn-block" href={`/api/auth/line/login?next=${encodeURIComponent(next)}`} aria-disabled={!config?.lineLoginEnabled}>
-          เข้าสู่ระบบด้วย LINE
+          เข้าสู่ระบบ
         </a>
-        {config && !config.lineLoginEnabled && <p className="muted small" style={{ marginTop: 8 }}>ยังไม่ได้ตั้งค่า LINE Login channel ใน server</p>}
+        {config && !config.lineLoginEnabled && <p className="muted small" style={{ marginTop: 8 }}>ยังไม่ได้ตั้งค่าการเข้าสู่ระบบใน server ใช้บัญชีทดลองด้านล่างได้</p>}
         <p className="muted small" style={{ marginTop: 12 }}>
-          ระบบจะชวนเพิ่มเพื่อน LINE OA ของบริษัทเพื่อรับแจ้งเตือนเอกสาร
+          เข้าสู่ระบบแล้วเปิดรับการแจ้งเตือน เพื่อรู้ทันทีเมื่อมีเอกสารให้เซ็น
         </p>
       </div>
       {config?.devLoginEnabled && (
         <div className="card">
-          <h3>ทดสอบระบบ (ยังไม่เชื่อม LINE)</h3>
-          <p className="muted small">เลือกบัญชีทดลองเพื่อเข้าใช้แทนการ login ด้วย LINE สลับคนได้ตลอดจากเมนูมุมขวาบน</p>
+          <h3>ทดสอบระบบ</h3>
+          <p className="muted small">เลือกบัญชีทดลองเพื่อเข้าใช้งาน สลับคนได้ตลอดจากเมนูมุมขวาบน</p>
           {devError && <div className="alert alert-error">{devError}</div>}
           {accounts.map((a) => (
             <button key={a.lineUserId} className="btn-block" style={{ justifyContent: 'space-between', marginBottom: 8, fontWeight: 500 }} onClick={() => devLogin(a.lineUserId, a.name)}>
@@ -71,9 +71,9 @@ export function LoginPage() {
             + ผู้ใช้ใหม่ (ลองลงทะเบียนครั้งแรก)
           </button>
           <details style={{ marginTop: 12 }}>
-            <summary className="small">ระบุ LINE userId เอง</summary>
+            <summary className="small">ระบุรหัสบัญชีเอง</summary>
             <label className="field" style={{ marginTop: 8 }}>
-              <span>LINE userId</span>
+              <span>รหัสบัญชี</span>
               <input type="text" value={devId} onChange={(e) => setDevId(e.target.value)} />
             </label>
             <label className="field">

@@ -253,7 +253,7 @@ function addCertificatePages(doc: PDFDocument, font: ShapedFont, bold: ShapedFon
 
   text('ผู้ลงนาม', { size: 12, f: bold, gap: 4 });
   const cols = [M, M + 28, M + 230, M + 345, M + 430];
-  const header = ['ลำดับ', 'ชื่อ / ตำแหน่ง', 'เวลาลงนาม', 'IP', 'LINE userId'];
+  const header = ['ลำดับ', 'ชื่อ / ตำแหน่ง', 'เวลาลงนาม', 'IP', 'รหัสบัญชี'];
   ensure(20);
   y -= 14;
   header.forEach((h, i) => font.draw(page, h, { x: cols[i], y, size: 9, color: GRAY }));
@@ -292,7 +292,7 @@ function addCertificatePages(doc: PDFDocument, font: ShapedFont, bold: ShapedFon
 
   y -= 16;
   text(
-    'ผู้ลงนามทุกคนยืนยันตัวตนด้วยบัญชี LINE และกดยืนยันการลงนามอิเล็กทรอนิกส์ด้วยตนเอง ระบบบันทึกเวลา หมายเลข IP และอุปกรณ์ที่ใช้ไว้ในบันทึกการทำงานที่แก้ไขไม่ได้',
+    'ผู้ลงนามทุกคนเข้าสู่ระบบด้วยบัญชีของตนเองและกดยืนยันการลงนามอิเล็กทรอนิกส์ด้วยตนเอง ระบบบันทึกเวลา หมายเลข IP และอุปกรณ์ที่ใช้ไว้ในบันทึกการทำงานที่แก้ไขไม่ได้',
     { size: 9, color: GRAY, gap: 2 },
   );
   if (c.sealedBy) text(`ไฟล์นี้ซีลด้วยใบรับรองดิจิทัลของ ${c.sealedBy} หากไฟล์ถูกแก้ไขหลังซีล โปรแกรมอ่าน PDF จะแสดงว่าลายเซ็นไม่ถูกต้อง`, { size: 9, color: GRAY, gap: 2 });

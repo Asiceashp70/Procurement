@@ -120,13 +120,13 @@ function Companies() {
           <div className="stat">
             <span className="num">{overview.lineMessages.sentThisMonth}</span>
             <span className="label">
-              ข้อความ LINE เดือนนี้
-              {quota?.limit ? ` (OA ใช้ ${quota.used}/${quota.limit})` : ''}
+              ข้อความแจ้งเตือนเดือนนี้
+              {quota?.limit ? ` (ใช้ไป ${quota.used}/${quota.limit})` : ''}
             </span>
           </div>
         </div>
       )}
-      {quota?.limit && quota.used / quota.limit > 0.8 && <div className="alert alert-warn">โควตาข้อความ LINE OA เดือนนี้ใช้ไปแล้วเกิน 80%</div>}
+      {quota?.limit && quota.used / quota.limit > 0.8 && <div className="alert alert-warn">โควตาข้อความแจ้งเตือนเดือนนี้ใช้ไปแล้วเกิน 80%</div>}
       {error && <div className="alert alert-error">{error}</div>}
       <div className="row" style={{ marginBottom: 12, flexWrap: 'nowrap' }}>
         <input type="search" placeholder="ค้นหาชื่อบริษัทหรือเลขผู้เสียภาษี" value={q} onChange={(e) => setQ(e.target.value)} />

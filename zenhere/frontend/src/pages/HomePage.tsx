@@ -17,11 +17,11 @@ export function HomePage() {
     <div className="stack">
       {!me.isOaFriend && (
         <div className="alert alert-warn">
-          <strong>ยังไม่ได้เพิ่มเพื่อน LINE OA</strong>
+          <strong>ยังไม่ได้เปิดรับการแจ้งเตือน</strong>
           <div className="small">คุณจะไม่ได้รับแจ้งเตือนเมื่อมีเอกสารให้เซ็น</div>
           {config?.oaAddFriendUrl && (
             <a className="btn btn-sm btn-primary" style={{ marginTop: 8 }} href={config.oaAddFriendUrl}>
-              เพิ่มเพื่อน
+              เปิดรับการแจ้งเตือน
             </a>
           )}
         </div>

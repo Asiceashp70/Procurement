@@ -134,7 +134,7 @@ export function SignPage() {
       <div className="card center stack">
         <div style={{ fontSize: 48 }}>{done === 'signed' ? '✅' : '🚫'}</div>
         <h2>{done === 'signed' ? 'ลงนามเรียบร้อย' : 'ปฏิเสธการเซ็นแล้ว'}</h2>
-        <p className="muted">{done === 'signed' ? 'เมื่อทุกคนเซ็นครบ ระบบจะส่งไฟล์ฉบับสมบูรณ์ให้ทาง LINE' : 'ระบบแจ้งผู้ส่งเอกสารพร้อมเหตุผลแล้ว'}</p>
+        <p className="muted">{done === 'signed' ? 'เมื่อทุกคนเซ็นครบ ระบบจะแจ้งเตือนพร้อมลิงก์ไฟล์ฉบับสมบูรณ์' : 'ระบบแจ้งผู้ส่งเอกสารพร้อมเหตุผลแล้ว'}</p>
         <Link className="btn" to={`/documents/${id}`}>
           ดูสถานะเอกสาร
         </Link>

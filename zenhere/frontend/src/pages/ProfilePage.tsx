@@ -114,7 +114,7 @@ export function ProfilePage() {
       </div>
 
       <div className="card small muted">
-        บัญชี LINE: {me.lineDisplayName} · {me.isOaFriend ? 'เป็นเพื่อนกับ LINE OA แล้ว' : 'ยังไม่ได้เพิ่มเพื่อน LINE OA'}
+        บัญชีที่ใช้เข้าสู่ระบบ: {me.lineDisplayName} · {me.isOaFriend ? 'เปิดรับการแจ้งเตือนแล้ว' : 'ยังไม่ได้เปิดรับการแจ้งเตือน'}
       </div>
     </div>
   );

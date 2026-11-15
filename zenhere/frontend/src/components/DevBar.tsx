@@ -6,7 +6,7 @@ import { useSession } from '../session';
 
 const SEEN_KEY = 'zenhere.dev.lineSeen';
 
-/** Development only: test LINE inbox link with an unread count, and a quick user switcher. */
+/** Development only: test notification inbox link with an unread count, and a quick user switcher. */
 export function DevBar() {
   const { me, config } = useSession();
   const [accounts, setAccounts] = useState<DevAccount[]>([]);
@@ -20,7 +20,7 @@ export function DevBar() {
   useEffect(() => {
     if (!config?.devLoginEnabled || !me?.registered) return;
     const check = () =>
-      api.get<{ createdAt: string }[]>('/dev/line-inbox').then((items) => {
+      api.get<{ createdAt: string }[]>('/dev/inbox').then((items) => {
         let seen = 0;
         try {
           seen = Number(localStorage.getItem(`${SEEN_KEY}.${me.id}`) ?? 0);
@@ -37,8 +37,8 @@ export function DevBar() {
   if (!config?.devLoginEnabled || !me) return null;
   return (
     <>
-      <Link to="/dev/line" className="small" style={{ fontWeight: 600, whiteSpace: 'nowrap' }} title="ข้อความที่ระบบจะส่งทาง LINE">
-        📱<span className="hide-sm"> LINE ทดสอบ</span>{unread > 0 && <span className="badge badge-rejected" style={{ marginLeft: 4 }}>{unread}</span>}
+      <Link to="/dev/inbox" className="small" style={{ fontWeight: 600, whiteSpace: 'nowrap' }} title="ข้อความแจ้งเตือนที่ระบบจะส่ง">
+        🔔<span className="hide-sm"> แจ้งเตือน (ทดสอบ)</span>{unread > 0 && <span className="badge badge-rejected" style={{ marginLeft: 4 }}>{unread}</span>}
       </Link>
       <select
         aria-label="สลับผู้ใช้ทดสอบ"

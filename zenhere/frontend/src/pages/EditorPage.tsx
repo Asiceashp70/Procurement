@@ -216,7 +216,7 @@ export function EditorPage() {
           </div>
           <label className="checkbox small">
             <input type="checkbox" checked={notifyOnSign} onChange={(e) => (setNotifyOnSign(e.target.checked), saveMeta({ notifyCreatorOnSign: e.target.checked }))} />
-            <span>แจ้งฉันทาง LINE ทุกครั้งที่มีคนเซ็น</span>
+            <span>แจ้งเตือนฉันทุกครั้งที่มีคนเซ็น</span>
           </label>
         </div>
 
@@ -382,7 +382,7 @@ function SignerPicker({ companyId, exclude, onPick, selfId }: { companyId: strin
                 <br />
                 <span className="muted small">
                   {[c.employeeCode, c.departmentName, c.positionName].filter(Boolean).join(' · ')}
-                  {!c.isOaFriend && ' · ⚠️ ยังไม่แอด OA'}
+                  {!c.isOaFriend && ' · ⚠️ ยังไม่เปิดรับแจ้งเตือน'}
                 </span>
               </span>
             </button>

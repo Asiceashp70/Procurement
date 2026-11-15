@@ -8,7 +8,7 @@ import { SchedulerService } from '../documents/scheduler.service';
 import { buildCards } from '../notifications/templates';
 
 /**
- * Testing without LINE. Every route answers 404 unless DEV_LOGIN_ENABLED=true
+ * Testing without the messaging channel. Every route answers 404 unless DEV_LOGIN_ENABLED=true
  * and NODE_ENV is not production (config validation refuses that combination too).
  */
 @Controller('dev')
@@ -47,8 +47,8 @@ export class DevController {
       .execute();
   }
 
-  /** What would have been sent to me on LINE, newest first. */
-  @Get('line-inbox')
+  /** Notifications that would have been sent to me, newest first. */
+  @Get('inbox')
   async inbox(@CurrentUser() user: User) {
     this.ensureEnabled();
     const rows = await this.db

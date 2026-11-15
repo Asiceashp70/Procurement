@@ -219,7 +219,7 @@ Log in on the login page as:
   ${lineId(2)}  มาลี      Company Admin (HR), sends documents
   ${lineId(3)}  วิชัย     manager, can create documents, may use the stamp
   ${lineId(4)}  สมชาย    has a contract to sign
-  ${lineId(5)}  สมหญิง   has a notice due tomorrow (not friends with the OA)
+  ${lineId(5)}  สมหญิง   has a notice due tomorrow (notifications not enabled)
   ${lineId(6)}  น้องใหม่  waiting for approval
 Test certificate password: ${certPassword} (self-signed, for testing only)`);
 }

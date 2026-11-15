@@ -286,7 +286,7 @@ describe('test mode without LINE', () => {
     const approved = await db.selectFrom('notifications').select('user_id').where('type', '=', 'membership.approved').executeTakeFirstOrThrow();
     const u = await db.selectFrom('users').select('line_user_id').where('id', '=', approved.user_id).executeTakeFirstOrThrow();
     const agent = await login(u.line_user_id);
-    const inbox = (await agent.get('/api/dev/line-inbox').expect(200)).body;
+    const inbox = (await agent.get('/api/dev/inbox').expect(200)).body;
     const card = inbox.find((m: { type: string }) => m.type === 'membership.approved').cards[0];
     expect(card.title).toBe('อนุมัติการเข้าร่วมบริษัทแล้ว');
     expect(card.button.path).toBe('/');

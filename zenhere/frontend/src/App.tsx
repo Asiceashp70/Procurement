@@ -39,7 +39,7 @@ export function App() {
           <Route path="/documents/:id/sign" element={<RequireLogin><Shell><SignPage /></Shell></RequireLogin>} />
           <Route path="/documents/:id/view" element={<RequireLogin><Shell><DocumentViewPage /></Shell></RequireLogin>} />
           <Route path="/search" element={<RequireLogin><Shell><SearchPage /></Shell></RequireLogin>} />
-          <Route path="/dev/line" element={<RequireLogin><Shell><DevLinePage /></Shell></RequireLogin>} />
+          <Route path="/dev/inbox" element={<RequireLogin><Shell><DevLinePage /></Shell></RequireLogin>} />
           <Route path="/verify" element={<RequireLogin><Shell><VerifyPage /></Shell></RequireLogin>} />
           <Route path="/profile" element={<RequireLogin><Shell><ProfilePage /></Shell></RequireLogin>} />
           <Route path="/c/:companyId/admin" element={<RequireLogin><Shell wide><CompanyAdminPage /></Shell></RequireLogin>} />

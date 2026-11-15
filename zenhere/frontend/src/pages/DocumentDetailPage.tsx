@@ -41,7 +41,7 @@ export function DocumentDetailPage() {
     run(async () => {
       const r = await api.post<{ sent: string[]; skipped: { nextAt: string }[] }>(`/documents/${id}/remind`, s ? { signerIds: [s.id] } : {});
       if (!r.sent.length && r.skipped.length) throw new Error(`เพิ่งเตือนไปแล้ว เตือนได้อีกครั้งหลัง ${thaiDateTime(r.skipped[0].nextAt)}`);
-    }, 'ส่งเตือนทาง LINE แล้ว');
+    }, 'ส่งการแจ้งเตือนแล้ว');
   const voidDoc = () => {
     const reason = window.prompt('เหตุผลที่ยกเลิกเอกสาร');
     if (reason?.trim()) run(() => api.post(`/documents/${id}/void`, { reason }), 'ยกเลิกเอกสารแล้ว');
@@ -121,7 +121,7 @@ export function DocumentDetailPage() {
             <div className="muted small" style={{ marginTop: 4 }}>
               {s.signedAt ? `เซ็นเมื่อ ${thaiDateTime(s.signedAt)}` : s.openedAt ? `เปิดดูแล้ว ${thaiDateTime(s.openedAt)}` : s.notifiedAt ? 'ยังไม่เปิดดู' : ''}
               {s.reminderCount > 0 && ` · เตือนแล้ว ${s.reminderCount} ครั้ง`}
-              {!s.isOaFriend && s.status !== 'signed' && <span style={{ color: 'var(--red)' }}> · ส่ง LINE ไม่ได้ (ยังไม่แอด OA) ต้องตามเอง</span>}
+              {!s.isOaFriend && s.status !== 'signed' && <span style={{ color: 'var(--red)' }}> · ยังไม่เปิดรับการแจ้งเตือน ต้องติดตามเอง</span>}
             </div>
             {s.declineReason && <div className="small">เหตุผลที่ปฏิเสธ: {s.declineReason}</div>}
             {d.status === 'pending' && (s.status === 'pending' || s.status === 'waiting') && (
@@ -188,7 +188,7 @@ export function DocumentDetailPage() {
           onClose={() => setReplacing(null)}
           onDone={() => {
             setReplacing(null);
-            setMsg('เปลี่ยนผู้เซ็นแล้ว ระบบแจ้งทุกคนที่เกี่ยวข้องทาง LINE');
+            setMsg('เปลี่ยนผู้เซ็นแล้ว ระบบแจ้งเตือนทุกคนที่เกี่ยวข้องแล้ว');
             load();
           }}
         />

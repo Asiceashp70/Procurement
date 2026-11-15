@@ -19,10 +19,10 @@ export class AuthGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest<Request & { authUser?: unknown }>();
     const res = ctx.switchToHttp().getResponse<Response>();
     const session = readSession(req.cookies?.[SESSION_COOKIE]);
-    if (!session) throw new UnauthorizedException('กรุณาเข้าสู่ระบบด้วย LINE');
+    if (!session) throw new UnauthorizedException('กรุณาเข้าสู่ระบบ');
 
     const user = await this.db.selectFrom('users').selectAll().where('id', '=', session.userId).executeTakeFirst();
-    if (!user) throw new UnauthorizedException('กรุณาเข้าสู่ระบบด้วย LINE');
+    if (!user) throw new UnauthorizedException('กรุณาเข้าสู่ระบบ');
     if (session.shouldRenew) issueSession(res, user.id);
     req.authUser = user;
 

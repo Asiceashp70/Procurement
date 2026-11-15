@@ -24,9 +24,9 @@ interface Message {
 }
 
 /**
- * Development only: the LINE messages the system would have pushed to the
- * current user, drawn like LINE Flex cards. The buttons open the same pages
- * the real LINE buttons will open.
+ * Development only: the notifications the system would have pushed to the
+ * current user, drawn as message cards. The buttons open the same pages the
+ * real notification buttons will open.
  */
 export function DevLinePage() {
   const { me } = useSession();
@@ -34,7 +34,7 @@ export function DevLinePage() {
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const load = useCallback(() => api.get<Message[]>('/dev/line-inbox').then(setItems, (e) => setError(errorText(e))), []);
+  const load = useCallback(() => api.get<Message[]>('/dev/inbox').then(setItems, (e) => setError(errorText(e))), []);
   useEffect(() => {
     load();
     const t = setInterval(load, 5000);
@@ -57,14 +57,14 @@ export function DevLinePage() {
   return (
     <div>
       <div className="line-header">
-        <span>📱</span>
+        <span>🔔</span>
         <div>
-          <strong>ZenHere (ทดสอบ)</strong>
-          <div className="small" style={{ opacity: 0.85 }}>ข้อความที่ระบบจะส่งถึง {me?.firstName} ทาง LINE เมื่อเชื่อม LINE แล้ว</div>
+          <strong>กล่องแจ้งเตือน (ทดสอบ)</strong>
+          <div className="small" style={{ opacity: 0.85 }}>ข้อความแจ้งเตือนที่ระบบจะส่งถึง {me?.firstName}</div>
         </div>
       </div>
       <div className="alert alert-info small">
-        ตอนนี้ยังไม่ได้เชื่อม LINE ระบบเก็บข้อความไว้ที่นี่แทน ข้อความเตือนอัตโนมัติช่วง 21:00–08:00 จะรอส่งตอน 08:00 (แสดงเป็น "รอส่ง")
+        ตอนนี้ยังไม่ได้เชื่อมระบบส่งข้อความ ระบบเก็บข้อความไว้ที่นี่แทน ข้อความเตือนอัตโนมัติช่วง 21:00–08:00 จะรอส่งตอน 08:00 (แสดงเป็น "รอส่ง")
       </div>
       {me?.isSuperAdmin && (
         <div className="row" style={{ marginBottom: 12 }}>
